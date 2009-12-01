@@ -14,11 +14,6 @@ step(['when', i, press, multiply], _) ->
 
 step(_, _) -> undefined.
 
-% Implementing a simple model here...
-
-enter(N) ->
-    put(calculator, [N | get(calculator)]).
-
 % A main() to kick it all off...
 
 main() ->
