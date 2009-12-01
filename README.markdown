@@ -64,10 +64,19 @@ pattern matching.
       todo;
     step(['then', the, result, should, be, Result, on, the, screen], _) ->
       % Your step implementation here.
-      todo.
+      todo;
+    step(_, _) -> undefined.
 
 Notice that all the tokens have been atomized (and turned lowercase).
-The above step definitions will match the parts of a scenario like...
+
+Also, we must have a last step definition that returns undefined,
+so that cucumberl can keep matching against every module that
+you provide in your StepDefinitionModules list (see below).
+
+In general, your "real" step definitions return anything but
+undefined.
+
+The above step definitions will match a scenario like the following...
 
     Scenario: Add two numbers
       Given I have entered 50 into the calculator

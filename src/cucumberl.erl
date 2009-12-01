@@ -44,9 +44,11 @@ process_line(Line, {Section, GWT, LineNum}, StepModules) ->
     io:format("~s:~s ",
               [string:left(Line, 65),
                string:left(integer_to_list(LineNum), 4)]),
+
     % Handle quoted sections by spliting by "\"" first.
     {TokenStrs, QuotedStrs} =
         unzip_odd_even(string:tokens(Line, "\"")),
+
     % Atomize the unquoted sections.
     TokenAtoms =
       lists:map(fun (X) ->
@@ -56,6 +58,7 @@ process_line(Line, {Section, GWT, LineNum}, StepModules) ->
                               string:tokens(X, " "))
                 end,
                 TokenStrs),
+
     % Zip it back together into a Tokens list that might look like...
     %   [given, i, have, entered, "Joe Armstrong", as, my, name]
     % or
@@ -67,6 +70,9 @@ process_line(Line, {Section, GWT, LineNum}, StepModules) ->
     % and need single quoting.
     %
     Tokens = zip_odd_even(TokenAtoms, QuotedStrs),
+
+    % Run through the StepModule steps, only if we are in a scenario
+    % section, otherwise, skip the line.
     {Section2, GWT2, Result} =
         case {Section, Tokens} of
             {_, ['scenario:' | _]} -> {scenario,  undefined, undefined};
@@ -91,6 +97,8 @@ process_line(Line, {Section, GWT, LineNum}, StepModules) ->
                       false, StepModules),
                 {Section, G, R}
         end,
+
+    % Emit result and our accumulator for our calling foldl.
     case {Section2, Result} of
         {scenario, true}  -> io:format("ok~n"),
                              {Section2, GWT2, LineNum + 1};

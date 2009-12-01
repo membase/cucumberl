@@ -13,13 +13,11 @@ step(['when', i, press, Op], _) ->
     press(Op);
 
 step(['then', the, result, should, be, Result, on, the, screen], _) ->
-    [list_to_integer(atom_to_list(Result))] =:= get(calculator).
+    [list_to_integer(atom_to_list(Result))] =:= get(calculator);
+
+step(_, _) -> undefined.
 
 % Implementing a simple model here...
-
-main() ->
-    put(calculator, []),
-    cucumberl:run("./features/sample.feature", [?MODULE]).
 
 enter(N) ->
     put(calculator, [N | get(calculator)]).
@@ -31,4 +29,10 @@ press(Op) ->
 
 add(X, Y) ->
     X + Y.
+
+% A main() to kick it all off...
+
+main() ->
+    put(calculator, []),
+    cucumberl:run("./features/sample.feature", [?MODULE]).
 
