@@ -19,3 +19,6 @@ test:
 
 sample:
 	erl -pa ebin -noshell -s sample main -s init stop
+
+sample_more:
+	erl -pa ebin -noshell -s sample_more main -s init stop
