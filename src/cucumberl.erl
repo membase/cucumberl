@@ -66,7 +66,7 @@ process_line(Line, {Section, GWT, LineNum}, StepModules) ->
     % Some atoms are reserved words in erlang ('when', 'if', 'then')
     % and need single quoting.
     %
-    Tokens = zip_odd_even(TokenAtoms, QuotedStrs, 1, []),
+    Tokens = zip_odd_even(TokenAtoms, QuotedStrs),
     {Section2, GWT2, Result} =
         case {Section, Tokens} of
             {_, ['scenario:' | _]} -> {scenario,  undefined, undefined};
@@ -119,6 +119,9 @@ lines([X | Rest], CurrLine, Lines) ->
 % This zip_odd_even() also does flattening of Odds,
 % since each Odd might be a list of atoms.
 
+zip_odd_even(Odds, Evens) ->
+    zip_odd_even(Odds, Evens, 1, []).
+
 zip_odd_even([], [], _F, Acc) ->
     lists:reverse(Acc);
 zip_odd_even([], [Even | Evens], F, Acc) ->
@@ -141,3 +144,17 @@ unzip_odd_even(Tokens) ->
                     {[], [], 1},
                     Tokens),
     {lists:reverse(Odds), lists:reverse(Evens)}.
+
+% ------------------------------------
+
+unzip_test() ->
+    ?assertMatch({[], []}, unzip_odd_even([])),
+    ?assertMatch({[1], []}, unzip_odd_even([1])),
+    ?assertMatch({[1], [2]}, unzip_odd_even([1, 2])),
+    ?assertMatch({[1, 3], [2]}, unzip_odd_even([1, 2, 3])),
+    ?assertMatch({[1, 3, 5], [2, 4, 6]},
+                 unzip_odd_even([1, 2, 3, 4, 5, 6])).
+
+zip_test() ->
+    ?assertMatch([1, 2, 3, 4, 5, 6],
+                 zip_odd_even([[1], [3], [5]], [2, 4, 6])).
