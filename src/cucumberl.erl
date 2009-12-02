@@ -25,17 +25,17 @@
 run(FilePath)              -> run(FilePath, []).
 run(FilePath, StepModules) -> run(FilePath, StepModules, 1).
 run(FilePath, StepModules, LineNumStart) ->
-    StepModulesX = StepModules ++ [?MODULE],
-    NumberedLines = numbered_lines(FilePath),
-    run_lines(NumberedLines, StepModulesX, LineNumStart).
+    run_lines(lines(FilePath), StepModules, LineNumStart).
 
-run_lines(NumberedLines, StepModules, LineNumStart) ->
+run_lines(Lines, StepModules, LineNumStart) ->
+    StepModulesEx = StepModules ++ [?MODULE],
+    NumberedLines = numbered_lines(Lines),
     {_, _, #stats{scenarios = NScenarios, steps = NSteps}} =
         lists:foldl(
           fun ({LineNum, _Line} = LNL,
                {Section, GWT, Stats} = Acc) ->
               case LineNum >= LineNumStart of
-                  true  -> process_line(LNL, Acc, StepModules);
+                  true  -> process_line(LNL, Acc, StepModulesEx);
                   false -> {Section, GWT, Stats}
               end
           end,
@@ -122,8 +122,7 @@ step(['scenario:' | _], _Line) -> true;
 step([], _) -> true;
 step(_, _)  -> undefined.
 
-numbered_lines(FilePath) ->
-    Lines = lines(FilePath),
+numbered_lines(Lines) ->
     NLines = length(Lines),
     lists:zip(lists:seq(1, NLines, 1), Lines).
 
