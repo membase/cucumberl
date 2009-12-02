@@ -30,6 +30,7 @@ run(FilePath, StepModules, LineNumStart) ->
 run_lines(Lines, StepModules, LineNumStart) ->
     StepModulesEx = StepModules ++ [?MODULE],
     NumberedLines = numbered_lines(Lines),
+    ExpandedLines = expanded_lines(NumberedLines),
     {_, _, #stats{scenarios = NScenarios, steps = NSteps}} =
         lists:foldl(
           fun ({LineNum, _Line} = LNL,
@@ -39,10 +40,61 @@ run_lines(Lines, StepModules, LineNumStart) ->
                   false -> {Section, GWT, Stats}
               end
           end,
-          {undefined, undefined, #stats{}}, NumberedLines),
+          {undefined, undefined, #stats{}}, ExpandedLines),
     io:format("~n~p scenarios~n~p steps~n~n",
               [NScenarios, NSteps]),
     ok.
+
+expanded_lines(NumberedLines) ->
+    % Expand "Scenario Outlines" or tables.
+    {_, _, ExpandedLines} =
+        lists:foldl(
+          fun({_LineNum, Line} = LNL,
+              {LastScenarioOutline, RowHeader, Out}) ->
+             case {LastScenarioOutline, RowHeader, string_to_atoms(Line)} of
+                 {undefined, _, ['scenario', 'outline:' | _]} ->
+                     {[LNL], undefined, Out};
+                 {undefined, _, _} ->
+                     {undefined, undefined, [LNL | Out]};
+                 {LSO, _, ['examples:' | _]} ->
+                     {lists:reverse(LSO), undefined, Out};
+                 {LSO, undefined, ['|' | _] = Row} ->
+                     {LSO, evens(Row), Out};
+                 {LSO, _, ['|' | _] = Row} ->
+                     ESO = lists:reverse(
+                             expand_scenario_outline(LSO, RowHeader,
+                                                     evens(Row))),
+                     {LSO, RowHeader, ESO ++ Out};
+                 {_, _, []} ->
+                     {undefined, undefined, [LNL | Out]};
+                 {LSO, _, _} ->
+                     {[LNL | LSO], RowHeader, Out}
+             end
+          end,
+          {undefined, undefined, []},
+          NumberedLines),
+    lists:reverse(ExpandedLines).
+
+expand_scenario_outline(ScenarioLines, RowHeader, RowTokens) ->
+    KeyValList = lists:zip(RowHeader, RowTokens),
+    lists:map(fun ({LineNum, Line}) ->
+                  {Strs, Placeholders} =
+                      unzip_odd_even(string:tokens(Line, "<>")),
+                  Replacements =
+                      lists:map(
+                        fun (Placeholder) ->
+                            K = list_to_atom(Placeholder),
+                            case lists:keysearch(K, 1, KeyValList) of
+                                {value, {K, Val}} -> atom_to_list(Val)
+                            end
+                        end,
+                        Placeholders),
+                  Line2 =
+                      lists:foldl(fun (X, Acc) -> Acc ++ X end,
+                                  "", zip_odd_even(Strs, Replacements)),
+                  {LineNum, Line2}
+              end,
+              ScenarioLines).
 
 process_line({LineNum, Line},
              {Section, GWT, #stats{scenarios = NScenarios,
@@ -71,13 +123,16 @@ process_line({LineNum, Line},
     % Some atoms are reserved words in erlang ('when', 'if', 'then')
     % and need single quoting.
     %
-    Tokens = zip_odd_even(TokenAtoms, QuotedStrs),
+    Tokens = flat_zip_odd_even(TokenAtoms, QuotedStrs),
 
     % Run through the StepModule steps, only if we are in a scenario
     % section, otherwise, skip the line.
     {Section2, GWT2, Result, Stats2} =
         case {Section, Tokens} of
             {_, ['scenario:' | _]} ->
+                {scenario, undefined, undefined,
+                 Stats#stats{scenarios = NScenarios + 1}};
+            {_, ['scenario', 'outline:' | _]} ->
                 {scenario, undefined, undefined,
                  Stats#stats{scenarios = NScenarios + 1}};
             {_, []}                ->
@@ -137,8 +192,22 @@ lines([$\n | Rest], CurrLine, Lines) ->
 lines([X | Rest], CurrLine, Lines) ->
     lines(Rest, [X | CurrLine], Lines).
 
-% This zip_odd_even() also does flattening of Odds,
+% This flat_zip_odd_even() also does flattening of Odds,
 % since each Odd might be a list of atoms.
+
+flat_zip_odd_even(Odds, Evens) ->
+    flat_zip_odd_even(Odds, Evens, 1, []).
+
+flat_zip_odd_even([], [], _F, Acc) ->
+    lists:reverse(Acc);
+flat_zip_odd_even([], [Even | Evens], F, Acc) ->
+    flat_zip_odd_even([], Evens, F, [Even | Acc]);
+flat_zip_odd_even([Odd | Odds], [], F, Acc) ->
+    flat_zip_odd_even(Odds, [], F, lists:reverse(Odd) ++ Acc);
+flat_zip_odd_even([Odd | Odds], Evens, 1, Acc) ->
+    flat_zip_odd_even(Odds, Evens, 0, lists:reverse(Odd) ++ Acc);
+flat_zip_odd_even(Odds, [Even | Evens], 0, Acc) ->
+    flat_zip_odd_even(Odds, Evens, 1, [Even | Acc]).
 
 zip_odd_even(Odds, Evens) ->
     zip_odd_even(Odds, Evens, 1, []).
@@ -148,9 +217,9 @@ zip_odd_even([], [], _F, Acc) ->
 zip_odd_even([], [Even | Evens], F, Acc) ->
     zip_odd_even([], Evens, F, [Even | Acc]);
 zip_odd_even([Odd | Odds], [], F, Acc) ->
-    zip_odd_even(Odds, [], F, lists:reverse(Odd) ++ Acc);
+    zip_odd_even(Odds, [], F, [Odd | Acc]);
 zip_odd_even([Odd | Odds], Evens, 1, Acc) ->
-    zip_odd_even(Odds, Evens, 0, lists:reverse(Odd) ++ Acc);
+    zip_odd_even(Odds, Evens, 0, [Odd | Acc]);
 zip_odd_even(Odds, [Even | Evens], 0, Acc) ->
     zip_odd_even(Odds, Evens, 1, [Even | Acc]).
 
@@ -162,14 +231,15 @@ unzip_odd_even(Tokens) ->
                             0 -> {Odds, [X | Evens], 1}
                         end
                     end,
-                    {[], [], 1},
-                    Tokens),
+                    {[], [], 1}, Tokens),
     {lists:reverse(Odds), lists:reverse(Evens)}.
 
+evens(L) ->
+    {_Odds, Evens} = unzip_odd_even(L),
+    Evens.
+
 string_to_atoms(StrWords) ->
-    lists:map(fun (Y) ->
-                  list_to_atom(string:to_lower(Y))
-              end,
+    lists:map(fun (Y) -> list_to_atom(string:to_lower(Y)) end,
               string:tokens(StrWords, " ")).
 
 % ------------------------------------
@@ -184,7 +254,9 @@ unzip_test() ->
 
 zip_test() ->
     ?assertMatch([1, 2, 3, 4, 5, 6],
-                 zip_odd_even([[1], [3], [5]], [2, 4, 6])).
+                 zip_odd_even([1, 3, 5], [2, 4, 6])),
+    ?assertMatch([1, 2, 3, 4, 5, 6],
+                 flat_zip_odd_even([[1], [3], [5]], [2, 4, 6])).
 
 string_to_atoms_test() ->
     ?assertMatch([], string_to_atoms("")),

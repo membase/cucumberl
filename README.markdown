@@ -100,8 +100,4 @@ your own project, as it's fully self-contained.
 
 MIT - We made this for you!
 
-## TODO
-
-- better parser that supports cucumber's Table syntax.
-
 

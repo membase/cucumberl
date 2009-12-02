@@ -22,3 +22,6 @@ sample:
 
 sample_more:
 	erl -pa ebin -noshell -s sample_more main -s init stop
+
+sample_table:
+	erl -pa ebin -noshell -s sample_table main -s init stop
