@@ -97,7 +97,10 @@ For example...
 The StepDefinitionModules parameter is a list of modules that define
 step/2 callbacks.  For example...
 
-    cucumberl:run("./features/sample.feature", [sample]).
+    cucumberl:run("./features/auction.feature",
+                  [auction_step_definitions,
+                   shared_step_definitions,
+                   util_steps]).
 
 ## Scenario Outlines
 

@@ -1,7 +1,5 @@
 -module(sample).
 
--include_lib("eunit/include/eunit.hrl").
-
 -compile(export_all).
 
 % Step definitions for the sample calculator Addition feature.

@@ -1,7 +1,5 @@
 -module(sample_table).
 
--include_lib("eunit/include/eunit.hrl").
-
 -compile(export_all).
 
 % Step definitions for the sample calculator Multiplication feature.
