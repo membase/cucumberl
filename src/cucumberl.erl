@@ -4,6 +4,9 @@
 
 -compile(export_all).
 
+-record(stats, {scenarios = 0,
+                steps = 0}).
+
 % Cucumber parser & driver in erlang, in a single file,
 % implementing a subset of the cucumber/gherkin DSL.
 %
@@ -27,18 +30,24 @@ run(FilePath, StepModules, LineNumStart) ->
     run_lines(Lines, StepModulesX, LineNumStart).
 
 run_lines(Lines, StepModules, LineNumStart) ->
-    {_, _, _} =
+    {_, _, _, #stats{scenarios = NScenarios,
+                     steps = NSteps}} =
         lists:foldl(
-          fun (Line, {Section, GWT, LineNum} = Acc) ->
+          fun (Line, {Section, GWT, LineNum, Stats} = Acc) ->
               case LineNum >= LineNumStart of
                   true  -> process_line(Line, Acc, StepModules);
                   false -> {Section, GWT, LineNum + 1}
               end
           end,
-          {undefined, undefined, 1}, Lines),
+          {undefined, undefined, 1, #stats{}}, Lines),
+    io:format("~n~p scenarios~n~p steps~n~n",
+              [NScenarios, NSteps]),
     ok.
 
-process_line(Line, {Section, GWT, LineNum}, StepModules) ->
+process_line(Line,
+             {Section, GWT, LineNum, #stats{scenarios = NScenarios,
+                                            steps = NSteps} = Stats},
+             StepModules) ->
     % GWT stands for given-when-then.
     % GWT is the previous line's given-when-then atom.
     io:format("~s:~s ",
@@ -73,11 +82,15 @@ process_line(Line, {Section, GWT, LineNum}, StepModules) ->
 
     % Run through the StepModule steps, only if we are in a scenario
     % section, otherwise, skip the line.
-    {Section2, GWT2, Result} =
+    {Section2, GWT2, Result, Stats2} =
         case {Section, Tokens} of
-            {_, ['scenario:' | _]} -> {scenario,  undefined, undefined};
-            {_, []}                -> {undefined, undefined, undefined};
-            {undefined, _}         -> {undefined, undefined, undefined};
+            {_, ['scenario:' | _]} ->
+                {scenario, undefined, undefined,
+                 Stats#stats{scenarios = NScenarios + 1}};
+            {_, []}                ->
+                {undefined, undefined, undefined, Stats};
+            {undefined, _}         ->
+                {undefined, undefined, undefined, Stats};
             {scenario, [TokensHead | TokensTail]} ->
                 G = case {GWT, TokensHead} of
                         {undefined, _}    -> TokensHead;
@@ -95,17 +108,20 @@ process_line(Line, {Section, GWT, LineNum}, StepModules) ->
                           end
                       end,
                       false, StepModules),
-                {Section, G, R}
+                {Section, G, R, Stats#stats{steps = NSteps + 1}}
         end,
 
     % Emit result and our accumulator for our calling foldl.
     case {Section2, Result} of
         {scenario, true}  -> io:format("ok~n"),
-                             {Section2, GWT2, LineNum + 1};
-        {scenario, false} -> io:format("NO-STEP~n"),
-                             {undefined, undefined, LineNum + 1};
+                             {Section2, GWT2, LineNum + 1, Stats2};
+        {scenario, false} -> io:format("NO-STEP~n~n"),
+                             io:format("a step definition snippet...~n"),
+                             io:format("step(~p, _) ->~n  undefined.~n~n",
+                                       [Tokens]),
+                             {undefined, undefined, LineNum + 1, Stats2};
         _                 -> io:format("~n"),
-                             {Section2, GWT2, LineNum + 1}
+                             {Section2, GWT2, LineNum + 1, Stats2}
     end.
 
 step(['feature:' | _], _Line)  -> true;
