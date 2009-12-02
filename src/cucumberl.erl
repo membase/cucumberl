@@ -26,27 +26,27 @@ run(FilePath)              -> run(FilePath, []).
 run(FilePath, StepModules) -> run(FilePath, StepModules, 1).
 run(FilePath, StepModules, LineNumStart) ->
     StepModulesX = StepModules ++ [?MODULE],
-    Lines = lines(FilePath),
-    run_lines(Lines, StepModulesX, LineNumStart).
+    NumberedLines = numbered_lines(FilePath),
+    run_lines(NumberedLines, StepModulesX, LineNumStart).
 
-run_lines(Lines, StepModules, LineNumStart) ->
-    {_, _, _, #stats{scenarios = NScenarios,
-                     steps = NSteps}} =
+run_lines(NumberedLines, StepModules, LineNumStart) ->
+    {_, _, #stats{scenarios = NScenarios, steps = NSteps}} =
         lists:foldl(
-          fun (Line, {Section, GWT, LineNum, Stats} = Acc) ->
+          fun ({LineNum, _Line} = LNL,
+               {Section, GWT, Stats} = Acc) ->
               case LineNum >= LineNumStart of
-                  true  -> process_line(Line, Acc, StepModules);
-                  false -> {Section, GWT, LineNum + 1}
+                  true  -> process_line(LNL, Acc, StepModules);
+                  false -> {Section, GWT, Stats}
               end
           end,
-          {undefined, undefined, 1, #stats{}}, Lines),
+          {undefined, undefined, #stats{}}, NumberedLines),
     io:format("~n~p scenarios~n~p steps~n~n",
               [NScenarios, NSteps]),
     ok.
 
-process_line(Line,
-             {Section, GWT, LineNum, #stats{scenarios = NScenarios,
-                                            steps = NSteps} = Stats},
+process_line({LineNum, Line},
+             {Section, GWT, #stats{scenarios = NScenarios,
+                                   steps = NSteps} = Stats},
              StepModules) ->
     % GWT stands for given-when-then.
     % GWT is the previous line's given-when-then atom.
@@ -114,20 +114,25 @@ process_line(Line,
     % Emit result and our accumulator for our calling foldl.
     case {Section2, Result} of
         {scenario, true}  -> io:format("ok~n"),
-                             {Section2, GWT2, LineNum + 1, Stats2};
+                             {Section2, GWT2, Stats2};
         {scenario, false} -> io:format("NO-STEP~n~n"),
                              io:format("a step definition snippet...~n"),
                              io:format("step(~p, _) ->~n  undefined.~n~n",
                                        [Tokens]),
-                             {undefined, undefined, LineNum + 1, Stats2};
+                             {undefined, undefined, Stats2};
         _                 -> io:format("~n"),
-                             {Section2, GWT2, LineNum + 1, Stats2}
+                             {Section2, GWT2, Stats2}
     end.
 
 step(['feature:' | _], _Line)  -> true;
 step(['scenario:' | _], _Line) -> true;
 step([], _) -> true;
 step(_, _)  -> undefined.
+
+numbered_lines(FilePath) ->
+    Lines = lines(FilePath),
+    NLines = length(Lines),
+    lists:zip(lists:seq(1, NLines, 1), Lines).
 
 lines(FilePath) ->
     {ok, FB} = file:read_file(FilePath),
