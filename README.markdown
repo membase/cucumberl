@@ -84,7 +84,13 @@ The above step definitions will match a scenario like the following...
       When I press add
       Then the result should be 120 on the screen
 
-To run a feature file through cucumberl, do...
+## Running cucumberl
+
+To run a feature file through cucumberl, the erlang API is...
+
+    cucumberl:run(PathToFeatureFile, StepDefinitionModules).
+
+For example...
 
     cucumberl:run("./features/sample.feature", StepDefinitionModules).
 
@@ -93,11 +99,43 @@ step/2 callbacks.  For example...
 
     cucumberl:run("./features/sample.feature", [sample]).
 
-To use this in your own work, you can just copy src/cucumber.erl to
-your own project, as it's fully self-contained.
+## Scenario Outlines
+
+There's basic support for Scenario Outlines, aka Example Tables, in
+cucumberl.  However, placeholders names should be all lowercase, and
+there shouldn't be any blank lines before the "Examples:" label.  For
+example...
+
+    Scenario Outline:
+      Given I have cleared the calculator
+      And I have entered <a> into the calculator
+      And I have entered <b> into the calculator
+      When I press <op>
+      Then the result should be <ab> on the screen
+      Examples:
+        |  a | b | ab | op       |
+        |  1 | 1 | 2  | add      |
+        |  1 | 3 | 3  | multiply |
+        |  2 | 3 | 6  | multiply |
+        | 10 | 1 | 11 | add      |
+
+See the src/sample_table.erl and features/sample_table.feature for
+more details.
+
+## It fits in one file!
+
+To use cucumberl in your own work, you can just copy src/cucumber.erl
+to your own erlang project, as it's fully self-contained.
 
 ## License
 
 MIT - We made this for you!
+
+## Feedback, or getting in touch
+
+Improvements and patches welcomed -- info@northscale.com
+
+Cheers,
+Steve Yen
 
 
