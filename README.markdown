@@ -1,6 +1,6 @@
 # cucumberl
 
-A pure-erlang, open-soruce, single-file implementation of Cucumber
+A pure-erlang, open-source, single-file implementation of Cucumber
 (http://cukes.info).  This provides a subset of the Cucumber feature
 definition language.
 
