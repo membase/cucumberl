@@ -196,32 +196,28 @@ lines([X | Rest], CurrLine, Lines) ->
 % since each Odd might be a list of atoms.
 
 flat_zip_odd_even(Odds, Evens) ->
-    flat_zip_odd_even(Odds, Evens, 1, []).
-
-flat_zip_odd_even([], [], _F, Acc) ->
-    lists:reverse(Acc);
-flat_zip_odd_even([], [Even | Evens], F, Acc) ->
-    flat_zip_odd_even([], Evens, F, [Even | Acc]);
-flat_zip_odd_even([Odd | Odds], [], F, Acc) ->
-    flat_zip_odd_even(Odds, [], F, lists:reverse(Odd) ++ Acc);
-flat_zip_odd_even([Odd | Odds], Evens, 1, Acc) ->
-    flat_zip_odd_even(Odds, Evens, 0, lists:reverse(Odd) ++ Acc);
-flat_zip_odd_even(Odds, [Even | Evens], 0, Acc) ->
-    flat_zip_odd_even(Odds, Evens, 1, [Even | Acc]).
+    zip_odd_even(flat, Odds, Evens, 1, []).
 
 zip_odd_even(Odds, Evens) ->
-    zip_odd_even(Odds, Evens, 1, []).
+    zip_odd_even(reg, Odds, Evens, 1, []).
 
-zip_odd_even([], [], _F, Acc) ->
+zip_odd_even(_, [], [], _F, Acc) ->
     lists:reverse(Acc);
-zip_odd_even([], [Even | Evens], F, Acc) ->
-    zip_odd_even([], Evens, F, [Even | Acc]);
-zip_odd_even([Odd | Odds], [], F, Acc) ->
-    zip_odd_even(Odds, [], F, [Odd | Acc]);
-zip_odd_even([Odd | Odds], Evens, 1, Acc) ->
-    zip_odd_even(Odds, Evens, 0, [Odd | Acc]);
-zip_odd_even(Odds, [Even | Evens], 0, Acc) ->
-    zip_odd_even(Odds, Evens, 1, [Even | Acc]).
+zip_odd_even(K, [], [Even | Evens], F, Acc) ->
+    zip_odd_even(K, [], Evens, F, [Even | Acc]);
+
+zip_odd_even(reg, [Odd | Odds], [], F, Acc) ->
+    zip_odd_even(reg, Odds, [], F, [Odd | Acc]);
+zip_odd_even(flat, [Odd | Odds], [], F, Acc) ->
+    zip_odd_even(flat, Odds, [], F, lists:reverse(Odd) ++ Acc);
+
+zip_odd_even(reg, [Odd | Odds], Evens, 1, Acc) ->
+    zip_odd_even(reg, Odds, Evens, 0, [Odd | Acc]);
+zip_odd_even(flat, [Odd | Odds], Evens, 1, Acc) ->
+    zip_odd_even(flat, Odds, Evens, 0, lists:reverse(Odd) ++ Acc);
+
+zip_odd_even(K, Odds, [Even | Evens], 0, Acc) ->
+    zip_odd_even(K, Odds, Evens, 1, [Even | Acc]).
 
 unzip_odd_even(Tokens) ->
     {Odds, Evens, _F} =
