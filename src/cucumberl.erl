@@ -59,14 +59,7 @@ process_line({LineNum, Line},
         unzip_odd_even(string:tokens(Line, "\"")),
 
     % Atomize the unquoted sections.
-    TokenAtoms =
-      lists:map(fun (X) ->
-                    lists:map(fun (Y) ->
-                                  list_to_atom(string:to_lower(Y))
-                              end,
-                              string:tokens(X, " "))
-                end,
-                TokenStrs),
+    TokenAtoms = lists:map(fun string_to_atoms/1, TokenStrs),
 
     % Zip it back together into a Tokens list that might look like...
     %   [given, i, have, entered, "Joe Armstrong", as, my, name]
@@ -174,6 +167,12 @@ unzip_odd_even(Tokens) ->
                     Tokens),
     {lists:reverse(Odds), lists:reverse(Evens)}.
 
+string_to_atoms(StrWords) ->
+    lists:map(fun (Y) ->
+                  list_to_atom(string:to_lower(Y))
+              end,
+              string:tokens(StrWords, " ")).
+
 % ------------------------------------
 
 unzip_test() ->
@@ -187,3 +186,10 @@ unzip_test() ->
 zip_test() ->
     ?assertMatch([1, 2, 3, 4, 5, 6],
                  zip_odd_even([[1], [3], [5]], [2, 4, 6])).
+
+string_to_atoms_test() ->
+    ?assertMatch([], string_to_atoms("")),
+    ?assertMatch([a, bb, ccc],
+                 string_to_atoms("a bb ccc")),
+    ?assertMatch([a, bb, ccc],
+                 string_to_atoms("  a  bb   ccc  ")).
