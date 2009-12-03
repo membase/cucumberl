@@ -139,6 +139,8 @@ process_line({LineNum, Line},
                 {undefined, undefined, undefined, Stats};
             {undefined, _}         ->
                 {undefined, undefined, undefined, Stats};
+            {scenario, ['#' | _]} ->
+                {Section, GWT, true, Stats};
             {scenario, [TokensHead | TokensTail]} ->
                 G = case {GWT, TokensHead} of
                         {undefined, _}    -> TokensHead;
