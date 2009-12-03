@@ -4,8 +4,8 @@
 
 -compile(export_all).
 
--record(stats, {scenarios = 0,
-                steps = 0}).
+-record(cucumberl_stats, {scenarios = 0,
+                          steps = 0}).
 
 % Cucumber parser & driver in erlang, in a single file,
 % implementing a subset of the cucumber/gherkin DSL.
@@ -31,7 +31,8 @@ run_lines(Lines, StepModules, LineNumStart) ->
     StepModulesEx = StepModules ++ [?MODULE],
     NumberedLines = numbered_lines(Lines),
     ExpandedLines = expanded_lines(NumberedLines),
-    {_, _, #stats{scenarios = NScenarios, steps = NSteps}} =
+    {_, _, #cucumberl_stats{scenarios = NScenarios,
+                            steps = NSteps} = Stats} =
         lists:foldl(
           fun ({LineNum, _Line} = LNL,
                {Section, GWT, Stats} = Acc) ->
@@ -40,10 +41,10 @@ run_lines(Lines, StepModules, LineNumStart) ->
                   false -> {Section, GWT, Stats}
               end
           end,
-          {undefined, undefined, #stats{}}, ExpandedLines),
+          {undefined, undefined, #cucumberl_stats{}}, ExpandedLines),
     io:format("~n~p scenarios~n~p steps~n~n",
               [NScenarios, NSteps]),
-    ok.
+    {ok, Stats}.
 
 expanded_lines(NumberedLines) ->
     % Expand "Scenario Outlines" or tables.
@@ -97,8 +98,8 @@ expand_scenario_outline(ScenarioLines, RowHeader, RowTokens) ->
               ScenarioLines).
 
 process_line({LineNum, Line},
-             {Section, GWT, #stats{scenarios = NScenarios,
-                                   steps = NSteps} = Stats},
+             {Section, GWT, #cucumberl_stats{scenarios = NScenarios,
+                                             steps = NSteps} = Stats},
              StepModules) ->
     % GWT stands for given-when-then.
     % GWT is the previous line's given-when-then atom.
@@ -131,10 +132,10 @@ process_line({LineNum, Line},
         case {Section, Tokens} of
             {_, ['scenario:' | _]} ->
                 {scenario, undefined, undefined,
-                 Stats#stats{scenarios = NScenarios + 1}};
+                 Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {_, ['scenario', 'outline:' | _]} ->
                 {scenario, undefined, undefined,
-                 Stats#stats{scenarios = NScenarios + 1}};
+                 Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {_, []}                ->
                 {undefined, undefined, undefined, Stats};
             {undefined, _}         ->
@@ -158,7 +159,7 @@ process_line({LineNum, Line},
                           end
                       end,
                       false, StepModules),
-                {Section, G, R, Stats#stats{steps = NSteps + 1}}
+                {Section, G, R, Stats#cucumberl_stats{steps = NSteps + 1}}
         end,
 
     % Emit result and our accumulator for our calling foldl.
@@ -184,8 +185,11 @@ numbered_lines(Lines) ->
     lists:zip(lists:seq(1, NLines, 1), Lines).
 
 lines(FilePath) ->
-    {ok, FB} = file:read_file(FilePath),
-    lines(binary_to_list(FB), [], []).
+    case file:read_file(FilePath) of
+        {ok, FB} -> lines(binary_to_list(FB), [], []);
+        Err -> io:format("error: could not open file ~p~n", [FilePath]),
+               exit(Err)
+    end.
 
 lines([], CurrLine, Lines) ->
     lists:reverse([lists:reverse(CurrLine) | Lines]);
