@@ -131,17 +131,17 @@ process_line({LineNum, Line},
     {Section2, GWT2, Result, Stats2} =
         case {Section, Tokens} of
             {_, ['scenario:' | _]} ->
-                {scenario, undefined, undefined,
+                {scenario, undefined, ok,
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {_, ['scenario', 'outline:' | _]} ->
-                {scenario, undefined, undefined,
+                {scenario, undefined, ok,
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
-            {_, []}                ->
-                {undefined, undefined, undefined, Stats};
-            {undefined, _}         ->
-                {undefined, undefined, undefined, Stats};
+            {_, []} ->
+                {undefined, undefined, ok, Stats};
+            {undefined, _} ->
+                {undefined, undefined, ok, Stats};
             {scenario, ['#' | _]} ->
-                {Section, GWT, true, Stats};
+                {Section, GWT, ok, Stats};
             {scenario, [TokensHead | TokensTail]} ->
                 G = case {GWT, TokensHead} of
                         {undefined, _}    -> TokensHead;
@@ -149,16 +149,12 @@ process_line({LineNum, Line},
                         {GWT, TokensHead} -> TokensHead
                     end,
                 R = lists:foldl(
-                      fun (StepModule, Acc) ->
-                          case Acc of
-                              true  -> Acc;
-                              false ->
-                                  S = StepModule:step([G | TokensTail],
-                                                      {Line, LineNum}),
-                                  S =/= undefined
-                          end
+                      fun (StepModule, undefined) ->
+                              StepModule:step([G | TokensTail],
+                                              {Line, LineNum});
+                          (_, Acc) -> Acc
                       end,
-                      false, StepModules),
+                      undefined, StepModules),
                 {Section, G, R, Stats#cucumberl_stats{steps = NSteps + 1}}
         end,
 
@@ -166,13 +162,15 @@ process_line({LineNum, Line},
     case {Section2, Result} of
         {scenario, true}  -> io:format("ok~n"),
                              {Section2, GWT2, Stats2};
-        {scenario, false} -> io:format("NO-STEP~n~n"),
-                             io:format("a step definition snippet...~n"),
-                             io:format("step(~p, _) ->~n  undefined.~n~n",
-                                       [Tokens]),
-                             {undefined, undefined, Stats2};
-        _                 -> io:format("~n"),
-                             {Section2, GWT2, Stats2}
+        {scenario, false} -> io:format("FAIL~n"),
+                             {Section2, GWT2, Stats2};
+        {scenario, undefined} -> io:format("NO-STEP~n~n"),
+                                 io:format("a step definition snippet...~n"),
+                                 io:format("step(~p, _) ->~n  undefined.~n~n",
+                                           [Tokens]),
+                                 {undefined, undefined, Stats2};
+        _ -> io:format("~n"),
+             {Section2, GWT2, Stats2}
     end.
 
 step(['feature:' | _], _Line)  -> true;
