@@ -4,14 +4,13 @@
 
 % Step definitions for the sample calculator Addition feature.
 
-step([given, i, have, entered, N, into, the, calculator], _) ->
-    enter(list_to_integer(atom_to_list(N)));
+given([i, have, entered, N, into, the, calculator], _) ->
+    enter(list_to_integer(atom_to_list(N))).
 
-step(['when', i, press, Op], _) ->
-    press(Op);
+'when'([i, press, Op], _) -> press(Op).
 
-step(['then', the, result, should, be, Result, on, the, screen], _) ->
-    [list_to_integer(atom_to_list(Result))] =:= get(calculator);
+then([the, result, should, be, Result, on, the, screen], _) ->
+    [list_to_integer(atom_to_list(Result))] =:= get(calculator).
 
 step(_, _) -> undefined.
 
