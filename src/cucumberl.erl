@@ -162,8 +162,14 @@ process_line({LineNum, Line},
                     end,
                 R = lists:foldl(
                       fun (StepModule, undefined) ->
-                              StepModule:step([G | TokensTail],
-                                              {Line, LineNum});
+                              case erlang:function_exported(StepModule, G, 2) of
+                                  true ->
+                                      apply(StepModule, G, [TokensTail,
+                                                            {Line, LineNum}]);
+                                  false ->
+                                      StepModule:step([G | TokensTail],
+                                                        {Line, LineNum})
+                              end;
                           (_, Acc) -> Acc
                       end,
                       undefined, StepModules),
