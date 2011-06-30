@@ -7,6 +7,9 @@
 -record(cucumberl_stats, {scenarios = 0,
                           steps = 0}).
 
+main(Args) ->
+    cucumberl_cli:main(Args).
+
 % Cucumber parser & driver in erlang, in a single file,
 % implementing a subset of the cucumber/gherkin DSL.
 %
@@ -28,7 +31,7 @@ run(FilePath, StepModules, LineNumStart) ->
     run_lines(lines(FilePath), StepModules, LineNumStart).
 
 run_lines(Lines, StepModules, LineNumStart) ->
-    StepModulesEx = StepModules ++ [?MODULE],
+    StepModulesEx = resolve_modules(StepModules) ++ [?MODULE],
     NumberedLines = numbered_lines(Lines),
     ExpandedLines = expanded_lines(NumberedLines),
     {_, _, #cucumberl_stats{scenarios = NScenarios,
@@ -45,6 +48,15 @@ run_lines(Lines, StepModules, LineNumStart) ->
     io:format("~n~p scenarios~n~p steps~n~n",
               [NScenarios, NSteps]),
     {ok, Stats}.
+
+resolve_modules([]) -> [];
+resolve_modules([Mod|Rest]) ->
+    case erlang:function_exported(Mod, additional_steps, 0) of
+        true ->
+            [Mod|Mod:additional_steps()] ++ resolve_modules(Rest);
+        false ->
+            [Mod|resolve_modules(Rest)]
+    end.
 
 expanded_lines(NumberedLines) ->
     % Expand "Scenario Outlines" or tables.
