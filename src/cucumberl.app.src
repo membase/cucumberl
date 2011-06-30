@@ -1,0 +1,10 @@
+{application, cucumberl,
+ [
+  {description, "A pure-erlang implementation of Cucumber."},
+  {vsn, "0.0.1"},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {env, []}
+ ]}.

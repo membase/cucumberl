@@ -16,25 +16,31 @@ To run unit tests, do...
 
     make test
 
-There's a sample feature file (features/sample.feature) and step
-definition (in src/sample.erl).  You can try them out like this:
+There's are sample feature files (examples/features) and step
+definitions (in examples/src).  You can try them out like this:
 
-    make sample
+    cd examples && make
 
 For example, here's a sample run...
 
-    $ make sample
-    erl -pa ebin -noshell -s sample main -s init stop
+    examples $ make
+    test -d ebin || mkdir ebin
+    erl -pa ebin -make
+    ../cucumberl
     Feature: Addition                                                :1
       In order to avoid silly mistakes                               :2
       As a math idiot                                                :3
       I want to be told the sum of two numbers                       :4
                                                                      :5
       Scenario: Add two numbers                                      :6
-        Given I have entered 50 into the calculator                  :7    ok
-        And I have entered 70 into the calculator                    :8    ok
-        When I press add                                             :9    ok
+        Given I have entered 50 into the calculator                  :7
+        And I have entered 70 into the calculator                    :8
+        When I press add                                             :9
         Then the result should be 120 on the screen                  :10   ok
+                                                                     :11
+
+    1 scenarios
+    4 steps
 
 ## Slow Start
 
@@ -128,7 +134,8 @@ more details.
 ## It fits in one file!
 
 To use cucumberl in your own work, you can just copy src/cucumber.erl
-to your own erlang project, as it's fully self-contained.
+to your own erlang project, as it's fully self-contained. You can also use the
+`cucumberl` escript which is generated when you build the project.
 
 ## License
 

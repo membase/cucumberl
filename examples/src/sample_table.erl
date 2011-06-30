@@ -2,6 +2,9 @@
 
 -compile(export_all).
 
+% A way to reference other step modules when running from the command line.
+additional_steps() -> put(calculator, []), [sample_more, sample].
+
 % Step definitions for the sample calculator Multiplication feature.
 
 step([given, i, have, cleared, the, calculator], _) ->
