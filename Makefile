@@ -1,20 +1,12 @@
-SHELL=/bin/sh
+#!/usr/bin/env make
 
-EFLAGS=-pa ebin
+all: build
 
-.PHONY: ebins
-
-all: ebins
-
-ebins:
-	test -d ebin || mkdir ebin
-	erl $(EFLAGS) -make
-	test -f `which rebar` && rebar escriptize
+build:
+	rebar compile escriptize
 
 clean:
-	rm -f tmp/*.cov.html erl_crash.dumpg
-	rm -rf ebin
-	cd examples && make clean
+	rebar clean
 
 test:
-	erl -pa ebin -noshell -s cucumberl test -s init stop
+	rebar eunit

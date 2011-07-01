@@ -1,11 +1,8 @@
 -module(cucumberl).
 
 -include_lib("eunit/include/eunit.hrl").
-
+-include("cucumberl.hrl").
 -compile(export_all).
-
--record(cucumberl_stats, {scenarios = 0,
-                          steps = 0}).
 
 main(Args) ->
     cucumberl_cli:main(Args).
@@ -111,7 +108,8 @@ expand_scenario_outline(ScenarioLines, RowHeader, RowTokens) ->
 
 process_line({LineNum, Line},
              {Section, GWT, #cucumberl_stats{scenarios = NScenarios,
-                                             steps = NSteps} = Stats},
+                                             steps = NSteps,
+                                             failures = FailedSoFar } = Stats},
              StepModules) ->
     % GWT stands for given-when-then.
     % GWT is the previous line's given-when-then atom.
@@ -161,15 +159,24 @@ process_line({LineNum, Line},
                         {GWT, TokensHead} -> TokensHead
                     end,
                 R = lists:foldl(
-                      fun (StepModule, undefined) ->
-                              case erlang:function_exported(StepModule, G, 2) of
-                                  true ->
-                                      apply(StepModule, G, [TokensTail,
-                                                            {Line, LineNum}]);
-                                  false ->
-                                      StepModule:step([G | TokensTail],
+                        fun (StepModule, undefined) ->
+                            try
+                                case erlang:function_exported(StepModule, G, 2) of
+                                    true ->
+                                        apply(StepModule, G, [TokensTail,
+                                                              {Line, LineNum}]);
+                                    false ->
+                                        StepModule:step([G | TokensTail],
                                                         {Line, LineNum})
-                              end;
+                                end
+                            catch
+                                error:function_clause -> 
+                                    %% we don't have a matching function clause
+                                    undefined;
+                                Err:Reason -> 
+                                    %% something else went wrong, which means fail
+                                    {failed, {Err, Reason}}
+                            end;
                           (_, Acc) -> Acc
                       end,
                       undefined, StepModules),
@@ -178,18 +185,36 @@ process_line({LineNum, Line},
 
     % Emit result and our accumulator for our calling foldl.
     case {Section2, Result} of
-        {scenario, true}  -> io:format("ok~n"),
-                             {Section2, GWT2, Stats2};
-        {scenario, false} -> io:format("FAIL~n"),
-                             {Section2, GWT2, Stats2};
-        {scenario, undefined} -> io:format("NO-STEP~n~n"),
-                                 io:format("a step definition snippet...~n"),
-                                 io:format("step(~p, _) ->~n  undefined.~n~n",
-                                           [Tokens]),
-                                 {undefined, undefined, Stats2};
-        _ -> io:format("~n"),
-             {Section2, GWT2, Stats2}
+        {scenario, Result} ->
+            case check_step(Result) of
+                passed ->
+                    io:format("ok~n"),
+                    {Section2, GWT2, Stats2};
+                missing ->
+                    io:format("NO-STEP~n~n"),
+                    io:format("a step definition snippet...~n"),
+                    io:format("step(~p, _) ->~n  undefined.~n~n", [Tokens]),
+                    {undefined, undefined, Stats2};
+                failed ->
+                    io:format("FAIL ~n"),
+                    {Section2, GWT2,
+                     Stats2#cucumberl_stats{ failures = [Result|FailedSoFar] }};
+                ignored ->
+                    io:format("~n"),
+                    {Section2, GWT2, Stats2}
+            end;
+        _ ->
+            %% TODO: is this an error case - should it fail when this happens?
+            io:format("~n"),
+            {Section2, GWT2, Stats2}
     end.
+
+check_step(true)        -> passed;
+check_step(ok)          -> passed;
+check_step(undefined)   -> missing;
+check_step(false)       -> failed;
+check_step({failed, _}) -> failed;
+check_step(_)           -> ignored.
 
 step(['feature:' | _], _Line)  -> true;
 step(['scenario:' | _], _Line) -> true;

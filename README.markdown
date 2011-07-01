@@ -16,17 +16,11 @@ To run unit tests, do...
 
     make test
 
-There's are sample feature files (examples/features) and step
-definitions (in examples/src).  You can try them out like this:
+There's are sample feature files (examples/features) and step definitions (in examples/src). Running `make test` will execute these too.
 
-    cd examples && make
+You can also run them by hand, for example...
 
-For example, here's a sample run...
-
-    examples $ make
-    test -d ebin || mkdir ebin
-    erl -pa ebin -make
-    ../cucumberl
+    examples $ ../cucumberl
     Feature: Addition                                                :1
       In order to avoid silly mistakes                               :2
       As a math idiot                                                :3
@@ -39,8 +33,7 @@ For example, here's a sample run...
         Then the result should be 120 on the screen                  :10   ok
                                                                      :11
 
-    1 scenarios
-    4 steps
+    etc.....
 
 ## Slow Start
 
@@ -53,6 +46,12 @@ function, with this kind of call signature...
 The TokenList parameter is a list of either atoms or strings, such as...
 
     [given, i, have, entered, "Joe Armstrong", into, the, authors, field]
+
+You can also export functions to explicitly deal with the `given`, `when` and
+`then` tokens. So for example, the previous TokenList would also be accepted in
+a function definition like this:
+
+    given([i, have, entered, Name, into, the, authors, field], _) -> ok.
 
 The Info parameter is a tuple of helpful debug information, such as
 the {LineText, LineNum}, of what cucumberl is currently processing.
@@ -79,8 +78,12 @@ Also, we must have a last step definition that returns undefined,
 so that cucumberl can keep matching against every module that
 you provide in your StepDefinitionModules list (see below).
 
-In general, your "real" step definitions return anything but
-undefined.
+In general, your "real" step definitions should return anything but
+undefined, with the following caveats:
+
+- The atoms `true` and `ok` represent *success* and print *ok* on the console
+- A two-tuple of the form `{failed, Reason}` indicates failure
+- The atom `undefined` essentially means, "carry on" (i.e., it is ignored)
 
 The above step definitions will match a scenario like the following...
 
@@ -92,7 +95,10 @@ The above step definitions will match a scenario like the following...
 
 ## Running cucumberl
 
-To run a feature file through cucumberl, the erlang API is...
+Running cucumberl on the command line is very simple. Just execute the cucumberl
+self-contained escript.
+
+To run a feature file through cucumberl using the erlang API...
 
     cucumberl:run(PathToFeatureFile, StepDefinitionModules).
 
@@ -128,8 +134,8 @@ example...
         |  2 | 3 | 6  | multiply |
         | 10 | 1 | 11 | add      |
 
-See the src/sample_table.erl and features/sample_table.feature for
-more details.
+See the files examples/sample/src/sample_table.erl and 
+examples/sample/features/sample_table.feature for more details.
 
 ## It fits in one file!
 

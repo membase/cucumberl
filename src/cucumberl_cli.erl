@@ -1,5 +1,5 @@
 -module(cucumberl_cli).
-
+-include("cucumberl.hrl").
 -export([main/1]).
 
 %% TODO: introduce command line arguments to control things like 
@@ -11,13 +11,25 @@
 main(_) ->
     code:add_pathz("ebin"),
     Features = find_files("features", ".*\\.feature\$"),
-    [ run_feature(F) || F <- Features ].
+    Outcomes = [ run_feature(F) || F <- Features ],
+    case lists:all(fun(X) -> X =:= ok end, Outcomes) of
+        true    -> ok;
+        false   -> halt(1)
+    end.
 
 run_feature(FeatureFile) ->
     %% is there a mod *named* for this feature?
     StepMod = list_to_atom(filename:basename(FeatureFile, ".feature")),
     AllStepMods = ensure_loaded([StepMod|step_helpers()]),
-    cucumberl:run(FeatureFile, AllStepMods).
+    {ok, #cucumberl_stats{failures=Failed}} = 
+        cucumberl:run(FeatureFile, AllStepMods),
+    case Failed of
+        [] ->
+            ok;
+        _ ->
+            io:format("~p failed steps.~n", [length(Failed)]),
+            {failed, Failed}
+    end.
 
 ensure_loaded([]) -> [];
 ensure_loaded([Mod|Rest]) ->
