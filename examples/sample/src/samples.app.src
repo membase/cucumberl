@@ -1,0 +1,9 @@
+{application, samples,
+ [
+  {description, "Cucumber Samples"},
+  {vsn, git},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]}
+ ]}.

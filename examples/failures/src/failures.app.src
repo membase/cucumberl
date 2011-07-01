@@ -1,0 +1,9 @@
+{application, failures,
+ [
+  {description, "Example of failing tests"},
+  {vsn, git},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]}
+ ]}.
