@@ -34,17 +34,16 @@ run(FilePath, FeatureModule, LineNumStart) ->
 run_lines(Lines, FeatureModule, LineNumStart) ->
     NumberedLines = numbered_lines(Lines),
     ExpandedLines = expanded_lines(NumberedLines),
-    {_, _, #cucumberl_stats{scenarios = NScenarios,
-                            steps = NSteps} = Stats} =
+    {_, _, _, #cucumberl_stats{scenarios = NScenarios,
+			       steps = NSteps} = Stats} =
         lists:foldl(
-          fun ({LineNum, _Line} = LNL,
-               {Section, GWT, Stats} = Acc) ->
+          fun ({LineNum, _Line} = LNL, Acc) ->
               case LineNum >= LineNumStart of
                   true  -> process_line(LNL, Acc, FeatureModule);
-                  false -> {Section, GWT, Stats}
+                  false -> Acc
               end
           end,
-          {undefined, undefined, #cucumberl_stats{}}, ExpandedLines),
+          {undefined, undefined, undefined, #cucumberl_stats{}}, ExpandedLines),
     io:format("~n~p scenarios~n~p steps~n~n",
               [NScenarios, NSteps]),
     {ok, Stats}.
@@ -101,9 +100,10 @@ expand_scenario_outline(ScenarioLines, RowHeader, RowTokens) ->
               ScenarioLines).
 
 process_line({LineNum, Line},
-             {Section, GWT, #cucumberl_stats{scenarios = NScenarios,
-                                             steps = NSteps,
-                                             failures = FailedSoFar } = Stats},
+             {Section, GWT, State,
+	      #cucumberl_stats{scenarios = NScenarios,
+			       steps = NSteps,
+			       failures = FailedSoFar } = Stats},
              FeatureModule) ->
     % GWT stands for given-when-then.
     % GWT is the previous line's given-when-then atom.
@@ -154,14 +154,8 @@ process_line({LineNum, Line},
                     end,
 
 		R = try
-			case erlang:function_exported(FeatureModule, G, 2) of
-			    true ->
-				apply(FeatureModule, G, [TokensTail,
-						      {Line, LineNum}]);
-			    false ->
-				FeatureModule:step([G | TokensTail],
-						{Line, LineNum})
-			end
+			apply_step(FeatureModule, G, State, TokensTail,
+				   Line, LineNum)
 		    catch
 			error:function_clause ->
 			    %% we don't have a matching function clause
@@ -178,34 +172,57 @@ process_line({LineNum, Line},
     case {Section2, Result} of
         {scenario, Result} ->
             case check_step(Result) of
-                passed ->
+                {passed, PossibleState} ->
                     io:format("ok~n"),
-                    {Section2, GWT2, Stats2};
+                    {Section2, GWT2, PossibleState, Stats2};
                 missing ->
                     io:format("NO-STEP~n~n"),
                     io:format("a step definition snippet...~n"),
                     io:format("step(~p, _) ->~n  undefined.~n~n", [Tokens]),
-                    {undefined, undefined, Stats2};
+                    {undefined, undefined, undefined, Stats2};
                 failed ->
                     io:format("FAIL ~n"),
-                    {Section2, GWT2,
+                    {Section2, GWT2, undefined,
                      Stats2#cucumberl_stats{ failures = [Result|FailedSoFar] }};
                 ignored ->
                     io:format("~n"),
-                    {Section2, GWT2, Stats2}
+                    {Section2, GWT2, undefined, State, Stats2}
             end;
         _ ->
             %% TODO: is this an error case - should it fail when this happens?
             io:format("~n"),
-            {Section2, GWT2, Stats2}
+            {Section2, GWT2, State, Stats2}
     end.
 
-check_step(true)        -> passed;
-check_step(ok)          -> passed;
-check_step(undefined)   -> missing;
-check_step(false)       -> failed;
-check_step({failed, _}) -> failed;
-check_step(_)           -> ignored.
+apply_step(FeatureModule, G, undefined, Tokens, Line, LineNum) ->
+    case erlang:function_exported(FeatureModule, G, 2) of
+	true ->
+	    apply(FeatureModule, G, [Tokens,
+				     {Line, LineNum}]);
+	false ->
+	    FeatureModule:step([G | Tokens],
+			       {Line, LineNum})
+    end;
+apply_step(FeatureModule, G, State, Tokens, Line, LineNum) ->
+    case erlang:function_exported(FeatureModule, G, 3) of
+	true ->
+	    apply(FeatureModule, G, [Tokens,
+				     State,
+				     {Line, LineNum}]);
+	false ->
+	    FeatureModule:step([G | Tokens],
+			       State,
+			       {Line, LineNum})
+    end.
+
+check_step(true)          -> {passed, undefined};
+check_step(ok)            -> {passed, undefined};
+check_step({ok, State})   -> {passed, State};
+check_step({true, State}) -> {passed, State};
+check_step(undefined)     -> missing;
+check_step(false)         -> failed;
+check_step({failed, _})   -> failed;
+check_step(_)             -> ignored.
 
 step(['feature:' | _], _Line)  -> true;
 step(['scenario:' | _], _Line) -> true;
