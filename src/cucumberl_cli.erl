@@ -2,7 +2,7 @@
 -include("cucumberl.hrl").
 -export([main/1]).
 
-%% TODO: introduce command line arguments to control things like 
+%% TODO: introduce command line arguments to control things like
 %%      (a) features directory
 %%      (b) extra sources/directories to add to code:path
 %%      (c) choice of feature(s) to be run
@@ -19,10 +19,10 @@ main(_) ->
 
 run_feature(FeatureFile) ->
     %% is there a mod *named* for this feature?
-    StepMod = list_to_atom(filename:basename(FeatureFile, ".feature")),
-    AllStepMods = ensure_loaded([StepMod|step_helpers()]),
-    {ok, #cucumberl_stats{failures=Failed}} = 
-        cucumberl:run(FeatureFile, AllStepMods),
+    StepMod = ensure_loaded(list_to_atom(filename:basename(FeatureFile,
+							   ".feature"))),
+    {ok, #cucumberl_stats{failures=Failed}} =
+        cucumberl:run(FeatureFile, StepMod),
     case Failed of
         [] ->
             ok;
@@ -31,21 +31,13 @@ run_feature(FeatureFile) ->
             {failed, Failed}
     end.
 
-ensure_loaded([]) -> [];
-ensure_loaded([Mod|Rest]) ->
-    [ensure_loaded(Mod)|ensure_loaded(Rest)];
 ensure_loaded(Mod) when is_atom(Mod) ->
     case code:ensure_loaded(Mod) of
         {error, _}=E ->
             throw(E);
-        _ -> 
+        _ ->
             Mod
     end.
-
-step_helpers() ->
-    %% TODO: this is a very crude way of loading multiple step modules...
-    [ M || {M, P} <- code:all_loaded(), 
-            P /= preloaded andalso string:str(P, "step_helper") > 0 ].
 
 find_files(Dir, Regex) ->
     filelib:fold_files(Dir, Regex, true, fun(F, Acc) -> [F | Acc] end, []).

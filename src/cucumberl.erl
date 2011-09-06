@@ -22,13 +22,16 @@ main(Args) ->
 %
 %   cucumberl:run("./features/sample.feature").
 %
-run(FilePath)              -> run(FilePath, []).
-run(FilePath, StepModules) -> run(FilePath, StepModules, 1).
-run(FilePath, StepModules, LineNumStart) ->
-    run_lines(lines(FilePath), StepModules, LineNumStart).
+run(FilePath) ->
+    StepMod = list_to_atom(filename:basename(FilePath, ".feature")),
+    run(FilePath, StepMod).
 
-run_lines(Lines, StepModules, LineNumStart) ->
-    StepModulesEx = resolve_modules(StepModules) ++ [?MODULE],
+run(FilePath, FeatureModule) ->
+    run(FilePath, FeatureModule, 1).
+run(FilePath, FeatureModule, LineNumStart) ->
+    run_lines(lines(FilePath), FeatureModule, LineNumStart).
+
+run_lines(Lines, FeatureModule, LineNumStart) ->
     NumberedLines = numbered_lines(Lines),
     ExpandedLines = expanded_lines(NumberedLines),
     {_, _, #cucumberl_stats{scenarios = NScenarios,
@@ -37,7 +40,7 @@ run_lines(Lines, StepModules, LineNumStart) ->
           fun ({LineNum, _Line} = LNL,
                {Section, GWT, Stats} = Acc) ->
               case LineNum >= LineNumStart of
-                  true  -> process_line(LNL, Acc, StepModulesEx);
+                  true  -> process_line(LNL, Acc, FeatureModule);
                   false -> {Section, GWT, Stats}
               end
           end,
@@ -45,15 +48,6 @@ run_lines(Lines, StepModules, LineNumStart) ->
     io:format("~n~p scenarios~n~p steps~n~n",
               [NScenarios, NSteps]),
     {ok, Stats}.
-
-resolve_modules([]) -> [];
-resolve_modules([Mod|Rest]) ->
-    case erlang:function_exported(Mod, additional_steps, 0) of
-        true ->
-            [Mod|Mod:additional_steps()] ++ resolve_modules(Rest);
-        false ->
-            [Mod|resolve_modules(Rest)]
-    end.
 
 expanded_lines(NumberedLines) ->
     % Expand "Scenario Outlines" or tables.
@@ -110,7 +104,7 @@ process_line({LineNum, Line},
              {Section, GWT, #cucumberl_stats{scenarios = NScenarios,
                                              steps = NSteps,
                                              failures = FailedSoFar } = Stats},
-             StepModules) ->
+             FeatureModule) ->
     % GWT stands for given-when-then.
     % GWT is the previous line's given-when-then atom.
     io:format("~s:~s ",
@@ -136,7 +130,7 @@ process_line({LineNum, Line},
     %
     Tokens = flat_zip_odd_even(TokenAtoms, QuotedStrs),
 
-    % Run through the StepModule steps, only if we are in a scenario
+    % Run through the FeatureModule steps, only if we are in a scenario
     % section, otherwise, skip the line.
     {Section2, GWT2, Result, Stats2} =
         case {Section, Tokens} of
@@ -158,30 +152,27 @@ process_line({LineNum, Line},
                         {_, 'and'}        -> GWT;
                         {GWT, TokensHead} -> TokensHead
                     end,
-                R = lists:foldl(
-                        fun (StepModule, undefined) ->
-                            try
-                                case erlang:function_exported(StepModule, G, 2) of
-                                    true ->
-                                        apply(StepModule, G, [TokensTail,
-                                                              {Line, LineNum}]);
-                                    false ->
-                                        StepModule:step([G | TokensTail],
-                                                        {Line, LineNum})
-                                end
-                            catch
-                                error:function_clause -> 
-                                    %% we don't have a matching function clause
-                                    undefined;
-                                Err:Reason -> 
-                                    %% something else went wrong, which means fail
-                                    {failed, {Err, Reason}}
-                            end;
-                          (_, Acc) -> Acc
-                      end,
-                      undefined, StepModules),
-                {Section, G, R, Stats#cucumberl_stats{steps = NSteps + 1}}
-        end,
+
+		R = try
+			case erlang:function_exported(FeatureModule, G, 2) of
+			    true ->
+				apply(FeatureModule, G, [TokensTail,
+						      {Line, LineNum}]);
+			    false ->
+				FeatureModule:step([G | TokensTail],
+						{Line, LineNum})
+			end
+		    catch
+			error:function_clause ->
+			    %% we don't have a matching function clause
+			    undefined;
+			Err:Reason ->
+			    %% something else went wrong, which means fail
+			    {failed, {Err, Reason}}
+		    end,
+
+		{Section, G, R, Stats#cucumberl_stats{steps = NSteps + 1}}
+	end,
 
     % Emit result and our accumulator for our calling foldl.
     case {Section2, Result} of
