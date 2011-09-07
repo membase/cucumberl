@@ -209,7 +209,9 @@ process_line({LineNum, Line},
                     io:format("NO-STEP~n~n"),
                     io:format("a step definition snippet...~n"),
 		    format_missing_step(GWT2, Tokens),
-                    {undefined, undefined, State, Stats2};
+                    {undefined, undefined, State,
+		     Stats2#cucumberl_stats{failures = [{missing, GWT2}
+							|FailedSoFar] }};
                 FailedResult ->
                     io:format("FAIL ~n"),
                     {Section2, GWT2, State,
@@ -236,11 +238,10 @@ check_step(true)           -> {passed, undefined};
 check_step(ok)             -> {passed, undefined};
 check_step({ok, State})    -> {passed, State};
 check_step({true, State})  -> {passed, State};
-check_step(undefined)      -> missing;
 check_step(step_undefined) -> missing;
 check_step(false)          -> failed;
 check_step({failed, _})    -> failed;
-check_step(_)              -> ignored.
+check_step(_)              -> invalid_result.
 
 step(['feature:' | _], _Line)  -> true;
 step(['scenario:' | _], _Line) -> true;
