@@ -43,7 +43,7 @@ run_lines(Lines, FeatureModule, LineNumStart) ->
     Result =
 	try
 	    State = call_setup(FeatureModule),
-	    {_, _, _, Stats} =
+	    {_, _, _, _, Stats} =
 		lists:foldl(
 		  fun ({LineNum, _Line} = LNL, Acc) ->
 			  case LineNum >= LineNumStart of
@@ -51,7 +51,8 @@ run_lines(Lines, FeatureModule, LineNumStart) ->
 			      false -> Acc
 			  end
 		  end,
-		  {undefined, undefined, State, #cucumberl_stats{}}, ExpandedLines),
+		  {false, undefined, undefined, State, #cucumberl_stats{}},
+		  ExpandedLines),
 	    call_teardown(FeatureModule, State),
 	    Stats
 	catch
@@ -130,7 +131,7 @@ expand_scenario_outline(ScenarioLines, RowHeader, RowTokens) ->
               ScenarioLines).
 
 process_line({LineNum, Line},
-             {Section, GWT, State,
+             {SkipSenario, Section, GWT, State,
 	      #cucumberl_stats{scenarios = NScenarios,
 			       steps = NSteps,
 			       failures = FailedSoFar } = Stats},
@@ -162,21 +163,21 @@ process_line({LineNum, Line},
 
     % Run through the FeatureModule steps, only if we are in a scenario
     % section, otherwise, skip the line.
-    {Section2, GWT2, Result, Stats2} =
-        case {Section, Tokens} of
-            {_, ['scenario:' | _]} ->
-                {scenario, undefined, {ok, State},
+    {SkipSenario2, Section2, GWT2, Result, Stats2} =
+        case {SkipSenario, Section, Tokens} of
+            {_, _, ['scenario:' | _]} ->
+                {false, scenario, undefined, {ok, State},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
-            {_, ['scenario', 'outline:' | _]} ->
-                {scenario, undefined, {ok, State},
+            {_, _, ['scenario', 'outline:' | _]} ->
+                {false, scenario, undefined, {ok, State},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
-            {_, []} ->
-                {undefined, undefined, {ok, State}, Stats};
-            {undefined, _} ->
-                {undefined, undefined, {ok, State}, Stats};
-            {scenario, ['#' | _]} ->
-                {Section, GWT, {ok, State}, Stats};
-            {scenario, [TokensHead | TokensTail]} ->
+            {_, _, []} ->
+                {SkipSenario, undefined, undefined, {ok, State}, Stats};
+            {_, undefined, _} ->
+                {SkipSenario, undefined, undefined, {ok, State}, Stats};
+            {_, scenario, ['#' | _]} ->
+                {SkipSenario, Section, GWT, {ok, State}, Stats};
+            {false, scenario, [TokensHead | TokensTail]} ->
                 G = case {GWT, TokensHead} of
                         {undefined, _}    -> TokensHead;
                         {_, 'and'}        -> GWT;
@@ -195,7 +196,11 @@ process_line({LineNum, Line},
 			    {failed, {Err, Reason}}
 		    end,
 
-		{Section, G, R, Stats#cucumberl_stats{steps = NSteps + 1}}
+		{SkipSenario, Section, G, R,
+		 Stats#cucumberl_stats{steps = NSteps + 1}};
+	    {true, scenario, _} ->
+		{SkipSenario, Section, GWT, skipped,
+		 Stats#cucumberl_stats{steps = NSteps + 1}}
 	end,
 
     % Emit result and our accumulator for our calling foldl.
@@ -203,25 +208,28 @@ process_line({LineNum, Line},
         {scenario, Result} ->
             case check_step(Result) of
                 {passed, PossibleState} ->
-                    io:format("ok~n"),
-                    {Section2, GWT2, PossibleState, Stats2};
+		    io:format("ok~n"),
+                    {SkipSenario2, Section2, GWT2, PossibleState, Stats2};
+		skipped ->
+		    io:format("skipped~n"),
+                    {SkipSenario2, Section2, GWT2, State, Stats2};
                 missing ->
                     io:format("NO-STEP~n~n"),
                     io:format("a step definition snippet...~n"),
 		    format_missing_step(GWT2, Tokens),
-                    {undefined, undefined, State,
+                    {true, undefined, undefined, State,
 		     Stats2#cucumberl_stats{failures = [{missing, GWT2}
 							|FailedSoFar] }};
                 FailedResult ->
                     io:format("FAIL ~n"),
-                    {Section2, GWT2, State,
+                    {true, Section2, GWT2, State,
                      Stats2#cucumberl_stats{ failures = [{FailedResult, Result}
 							 |FailedSoFar] }}
             end;
         _ ->
             %% TODO: is this an error case - should it fail when this happens?
             io:format("~n"),
-            {Section2, GWT2, State, Stats2}
+            {SkipSenario, Section2, GWT2, State, Stats2}
     end.
 
 apply_step(FeatureModule, G, State, Tokens, Line, LineNum) ->
@@ -238,6 +246,7 @@ check_step(true)           -> {passed, undefined};
 check_step(ok)             -> {passed, undefined};
 check_step({ok, State})    -> {passed, State};
 check_step({true, State})  -> {passed, State};
+check_step(skipped)        -> skipped;
 check_step(step_undefined) -> missing;
 check_step(false)          -> failed;
 check_step({failed, _})    -> failed;
