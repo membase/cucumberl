@@ -100,19 +100,25 @@ self-contained escript.
 
 To run a feature file through cucumberl using the erlang API...
 
-    cucumberl:run(PathToFeatureFile, StepDefinitionModules).
+    cucumberl:run(PathToFeatureFile, FeatureDefinitionModule).
 
 For example...
 
-    cucumberl:run("./features/sample.feature", StepDefinitionModules).
+    cucumberl:run("./features/sample.feature", FeatureDefinitionModule).
 
-The StepDefinitionModules parameter is a list of modules that define
-step/2 callbacks.  For example...
+The FeatureDefinitionModule parameter is an optional module that implements te feature and contains step/2 callbacks.  For example...
 
     cucumberl:run("./features/auction.feature",
-                  [auction_step_definitions,
-                   shared_step_definitions,
-                   util_steps]).
+    		   auction_step_definitions).
+
+If it is not provided, then the a module by the same name as the
+feature is assumed to implement the feature.
+
+    cucumberl:run("./features/auction.feature").
+
+is equivalent to
+
+    cucumberl:run("./features/auction.feature", auction).
 
 ## Scenario Outlines
 
@@ -134,7 +140,7 @@ example...
         |  2 | 3 | 6  | multiply |
         | 10 | 1 | 11 | add      |
 
-See the files examples/sample/src/sample_table.erl and 
+See the files examples/sample/src/sample_table.erl and
 examples/sample/features/sample_table.feature for more details.
 
 ## It fits in one file!
