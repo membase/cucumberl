@@ -184,7 +184,7 @@ process_line({LineNum, Line},
                 missing ->
                     io:format("NO-STEP~n~n"),
                     io:format("a step definition snippet...~n"),
-                    io:format("step(~p, _) ->~n  undefined.~n~n", [Tokens]),
+		    format_missing_step(GWT2, Tokens),
                     {undefined, undefined, undefined, Stats2};
                 failed ->
                     io:format("FAIL ~n"),
@@ -206,8 +206,7 @@ apply_step(FeatureModule, G, undefined, Tokens, Line, LineNum) ->
 	    apply(FeatureModule, G, [Tokens,
 				     {Line, LineNum}]);
 	false ->
-	    FeatureModule:step([G | Tokens],
-			       {Line, LineNum})
+	    step_undefined
     end;
 apply_step(FeatureModule, G, State, Tokens, Line, LineNum) ->
     case erlang:function_exported(FeatureModule, G, 3) of
@@ -216,19 +215,18 @@ apply_step(FeatureModule, G, State, Tokens, Line, LineNum) ->
 				     State,
 				     {Line, LineNum}]);
 	false ->
-	    FeatureModule:step([G | Tokens],
-			       State,
-			       {Line, LineNum})
+	    step_undefined
     end.
 
-check_step(true)          -> {passed, undefined};
-check_step(ok)            -> {passed, undefined};
-check_step({ok, State})   -> {passed, State};
-check_step({true, State}) -> {passed, State};
-check_step(undefined)     -> missing;
-check_step(false)         -> failed;
-check_step({failed, _})   -> failed;
-check_step(_)             -> ignored.
+check_step(true)           -> {passed, undefined};
+check_step(ok)             -> {passed, undefined};
+check_step({ok, State})    -> {passed, State};
+check_step({true, State})  -> {passed, State};
+check_step(undefined)      -> missing;
+check_step(step_undefined) -> missing;
+check_step(false)          -> failed;
+check_step({failed, _})    -> failed;
+check_step(_)              -> ignored.
 
 step(['feature:' | _], _Line)  -> true;
 step(['scenario:' | _], _Line) -> true;
@@ -298,6 +296,11 @@ evens(L) ->
 string_to_atoms(StrWords) ->
     lists:map(fun (Y) -> list_to_atom(string:to_lower(Y)) end,
               string:tokens(StrWords, " ")).
+
+format_missing_step('when', [_ | Tokens]) ->
+    io:format("'when'(~p, State, _) ->~n  undefined.~n~n", [Tokens]);
+format_missing_step(GWT, [_ | Tokens]) ->
+    io:format("~p(~p, State, _) ->~n  undefined.~n~n", [GWT, Tokens]).
 
 % ------------------------------------
 
