@@ -200,14 +200,6 @@ process_line({LineNum, Line},
             {Section2, GWT2, State, Stats2}
     end.
 
-apply_step(FeatureModule, G, undefined, Tokens, Line, LineNum) ->
-    case erlang:function_exported(FeatureModule, G, 2) of
-	true ->
-	    apply(FeatureModule, G, [Tokens,
-				     {Line, LineNum}]);
-	false ->
-	    step_undefined
-    end;
 apply_step(FeatureModule, G, State, Tokens, Line, LineNum) ->
     case erlang:function_exported(FeatureModule, G, 3) of
 	true ->
