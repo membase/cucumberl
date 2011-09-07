@@ -1,43 +1,21 @@
--module(sample).
+-module(complex_sample).
 
--compile(export_all).
--compile({no_auto_import,[get/0]}).
+-export([setup/0, given/3, 'when'/3, then/3, main/0]).
+
+setup() ->
+    [].
 
 % Step definitions for the sample calculator Addition feature.
 
-given([i, have, entered, N, into, the, calculator], _) ->
-    enter(list_to_integer(atom_to_list(N))).
+given(Step, State, _) ->
+    complex_sample_support:given(Step, State).
 
-'when'([i, press, Op], _) -> press(Op).
+'when'(Step, State, _) ->
+    complex_sample_support:'when'(Step, State).
 
-then([the, result, should, be, Result, on, the, screen], _) ->
-    [list_to_integer(atom_to_list(Result))] =:= get(calculator).
-
-step(_, _) -> undefined.
-
-% Implementing a simple model here...
-
-enter(N) ->
-    State = case get(calculator) of
-        undefined ->
-            [N|[]];
-        Val ->
-            [N|Val]
-    end,
-    put(calculator, State),
-    State.
-
-press(Op) ->
-    Result = apply(?MODULE, Op, get(calculator)),
-    put(calculator, [Result]),
-    Result.
-
-add(X, Y) ->
-    X + Y.
-
-% A main() to kick it all off...
+then(Step, State, _) ->
+    complex_sample_support:then(Step, State).
 
 main() ->
-    put(calculator, []),
-    cucumberl:run("./features/sample.feature", [?MODULE]).
+    cucumberl:run("./features/complex_sample.feature").
 

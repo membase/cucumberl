@@ -1,26 +1,24 @@
--module(sample_more).
+-module(complex_sample_more).
 
--compile(export_all).
+-export([setup/0,
+	 given/3, 'when'/3, then/3, main/0]).
 
-% A way to reference other step modules when running from the command line.
-additional_steps() -> put(calculator, []), [sample].
+setup() ->
+    [].
 
 % Step definitions for the sample calculator Multiplication feature.
+given(Step, State, _) ->
+    complex_sample_support:given(Step, State).
 
-step(['when', i, press, multiply], _) ->
-    [X, Y] = get(calculator),
-    Result = X * Y,
-    put(calculator, [Result]),
-    Result;
+'when'(Step, State, _) ->
+    complex_sample_support:'when'(Step, State).
 
-step(_, _) -> undefined.
+then(Step, State, _) ->
+    complex_sample_support:then(Step, State).
 
 % A main() to kick it all off...
 
 main() ->
-    Modules = [sample_more, sample],
-    put(calculator, []),
-    cucumberl:run("./features/sample_more.feature", Modules),
-    put(calculator, []),
-    cucumberl:run("./features/sample.feature", Modules).
+    cucumberl:run("./features/complex_sample_more.feature"),
+    cucumberl:run("./features/complex_sample.feature", ?MODULE).
 

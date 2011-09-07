@@ -1,23 +1,25 @@
--module(sample_table).
+-module(complex_sample_table).
 
--compile(export_all).
+-export([setup/0, given/3, 'when'/3, then/3, main/0]).
 
-% A way to reference other step modules when running from the command line.
-additional_steps() -> put(calculator, []), [sample_more, sample].
+setup() ->
+    [].
 
 % Step definitions for the sample calculator Multiplication feature.
 
-step([given, i, have, cleared, the, calculator], _) ->
-    put(calculator, []),
-    ok;
+given([i, have, cleared, the, calculator], _State, _) ->
+    {ok, []};
+given(Step, State, _) ->
+    complex_sample_support:given(Step, State).
 
-step(_, _) -> undefined.
+'when'(Step, State, _) ->
+    complex_sample_support:'when'(Step, State).
+
+then(Step, State, _) ->
+    complex_sample_support:then(Step, State).
 
 % A main() to kick it all off...
 
 main() ->
-    StepDefinitionModules = [sample_table, sample_more, sample],
-    put(calculator, []),
-    cucumberl:run("./features/sample_table.feature",
-                  StepDefinitionModules).
+    cucumberl:run("./features/complex_sample_table.feature").
 
