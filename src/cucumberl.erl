@@ -32,6 +32,12 @@ run(FilePath, FeatureModule, LineNumStart) ->
     run_lines(lines(FilePath), FeatureModule, LineNumStart).
 
 run_lines(Lines, FeatureModule, LineNumStart) ->
+    case code:ensure_loaded(FeatureModule) of
+	{module, FeatureModule} ->
+	    ok;
+	Error ->
+	    throw(Error)
+    end,
     NumberedLines = numbered_lines(Lines),
     ExpandedLines = expanded_lines(NumberedLines),
     {_, _, _, #cucumberl_stats{scenarios = NScenarios,
