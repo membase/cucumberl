@@ -40,19 +40,43 @@ run_lines(Lines, FeatureModule, LineNumStart) ->
     end,
     NumberedLines = numbered_lines(Lines),
     ExpandedLines = expanded_lines(NumberedLines),
-    {_, _, _, #cucumberl_stats{scenarios = NScenarios,
-			       steps = NSteps} = Stats} =
-        lists:foldl(
-          fun ({LineNum, _Line} = LNL, Acc) ->
-              case LineNum >= LineNumStart of
-                  true  -> process_line(LNL, Acc, FeatureModule);
-                  false -> Acc
-              end
-          end,
-          {undefined, undefined, undefined, #cucumberl_stats{}}, ExpandedLines),
-    io:format("~n~p scenarios~n~p steps~n~n",
-              [NScenarios, NSteps]),
-    {ok, Stats}.
+    Result =
+	try
+	    State = call_setup(FeatureModule),
+	    {_, _, _, Stats} =
+		lists:foldl(
+		  fun ({LineNum, _Line} = LNL, Acc) ->
+			  case LineNum >= LineNumStart of
+			      true  -> process_line(LNL, Acc, FeatureModule);
+			      false -> Acc
+			  end
+		  end,
+		  {undefined, undefined, State, #cucumberl_stats{}}, ExpandedLines),
+	    call_teardown(FeatureModule, State),
+	    Stats
+	catch
+	    Err:Reason ->
+		%% something else went wrong, which means fail
+		io:format("Feature Failed: ~p:~p ~p", [Err, Reason,
+						       erlang:get_stacktrace()]),
+		failed
+	end,
+    case Result of
+	#cucumberl_stats{scenarios = NScenarios,
+			 steps = NSteps,
+			 failures = []}  ->
+	    io:format("~n~p scenarios~n~p steps~n~n",
+		      [NScenarios, NSteps]),
+	    {ok, Result};
+	#cucumberl_stats{scenarios = NScenarios,
+			 steps = NSteps,
+			 failures = Failures}  ->
+	    io:format("~n~p scenarios~n~p steps~n~p failures ~n~n",
+		      [NScenarios, NSteps, Failures]),
+	    {failed, Result};
+	_ ->
+	    failed
+    end.
 
 expanded_lines(NumberedLines) ->
     % Expand "Scenario Outlines" or tables.
@@ -294,6 +318,21 @@ format_missing_step('when', [_ | Tokens]) ->
 format_missing_step(GWT, [_ | Tokens]) ->
     io:format("~p(~p, State, _) ->~n  undefined.~n~n", [GWT, Tokens]).
 
+call_setup(FeatureModule) ->
+    case erlang:function_exported(FeatureModule, setup, 0) of
+	true ->
+	    FeatureModule:setup();
+	false ->
+	    undefined
+    end.
+
+call_teardown(FeatureModule, State) ->
+    case erlang:function_exported(FeatureModule, teardown, 0) of
+	true ->
+	    FeatureModule:teardown(State);
+	false ->
+	    undefined
+    end.
 % ------------------------------------
 
 unzip_test() ->
