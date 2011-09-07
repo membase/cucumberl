@@ -165,17 +165,17 @@ process_line({LineNum, Line},
     {Section2, GWT2, Result, Stats2} =
         case {Section, Tokens} of
             {_, ['scenario:' | _]} ->
-                {scenario, undefined, ok,
+                {scenario, undefined, {ok, State},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {_, ['scenario', 'outline:' | _]} ->
-                {scenario, undefined, ok,
+                {scenario, undefined, {ok, State},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {_, []} ->
-                {undefined, undefined, ok, Stats};
+                {undefined, undefined, {ok, State}, Stats};
             {undefined, _} ->
-                {undefined, undefined, ok, Stats};
+                {undefined, undefined, {ok, State}, Stats};
             {scenario, ['#' | _]} ->
-                {Section, GWT, ok, Stats};
+                {Section, GWT, {ok, State}, Stats};
             {scenario, [TokensHead | TokensTail]} ->
                 G = case {GWT, TokensHead} of
                         {undefined, _}    -> TokensHead;
@@ -209,14 +209,12 @@ process_line({LineNum, Line},
                     io:format("NO-STEP~n~n"),
                     io:format("a step definition snippet...~n"),
 		    format_missing_step(GWT2, Tokens),
-                    {undefined, undefined, undefined, Stats2};
-                failed ->
+                    {undefined, undefined, State, Stats2};
+                FailedResult ->
                     io:format("FAIL ~n"),
-                    {Section2, GWT2, undefined,
-                     Stats2#cucumberl_stats{ failures = [Result|FailedSoFar] }};
-                ignored ->
-                    io:format("~n"),
-                    {Section2, GWT2, undefined, State, Stats2}
+                    {Section2, GWT2, State,
+                     Stats2#cucumberl_stats{ failures = [{FailedResult, Result}
+							 |FailedSoFar] }}
             end;
         _ ->
             %% TODO: is this an error case - should it fail when this happens?
