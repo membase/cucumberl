@@ -1,0 +1,9 @@
+{application, simple_samples,
+ [
+  {description, "Simple Cucumber Samples"},
+  {vsn, git},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]}
+ ]}.

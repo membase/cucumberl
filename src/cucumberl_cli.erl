@@ -20,7 +20,7 @@ main(_) ->
 run_feature(FeatureFile) ->
     %% is there a mod *named* for this feature?
     StepMod = ensure_loaded(list_to_atom(filename:basename(FeatureFile,
-							   ".feature"))),
+                                                           ".feature"))),
     {ok, #cucumberl_stats{failures=Failed}} =
         cucumberl:run(FeatureFile, StepMod),
     case Failed of
