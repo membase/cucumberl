@@ -5,7 +5,7 @@
 setup() ->
     [].
 
-% Step definitions for the sample calculator Addition feature.
+%% Step definitions for the sample calculator Addition feature.
 
 given(Step, State, _) ->
     complex_sample_support:given(Step, State).

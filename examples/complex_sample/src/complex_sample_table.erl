@@ -5,7 +5,7 @@
 setup() ->
     [].
 
-% Step definitions for the sample calculator Multiplication feature.
+%% Step definitions for the sample calculator Multiplication feature.
 
 given([i, have, cleared, the, calculator], _State, _) ->
     {ok, []};
@@ -18,7 +18,7 @@ given(Step, State, _) ->
 then(Step, State, _) ->
     complex_sample_support:then(Step, State).
 
-% A main() to kick it all off...
+%% A main() to kick it all off...
 
 main() ->
     cucumberl:run("./features/complex_sample_table.feature").
