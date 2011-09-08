@@ -1,6 +1,6 @@
-{application, samples,
+{application, complex_sample,
  [
-  {description, "Cucumber Samples"},
+  {description, "Complex, Cucumber Samples"},
   {vsn, git},
   {applications, [
                   kernel,
