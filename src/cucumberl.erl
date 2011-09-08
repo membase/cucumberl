@@ -131,7 +131,7 @@ expand_scenario_outline(ScenarioLines, RowHeader, RowTokens) ->
               ScenarioLines).
 
 process_line({LineNum, Line},
-             {SkipSenario, Section, GWT, State,
+             {SkipScenario, Section, GWT, State,
               #cucumberl_stats{scenarios = NScenarios,
                                steps = NSteps,
                                failures = FailedSoFar } = Stats},
@@ -163,8 +163,8 @@ process_line({LineNum, Line},
 
     %% Run through the FeatureModule steps, only if we are in a scenario
     %% section, otherwise, skip the line.
-    {SkipSenario2, Section2, GWT2, Result, Stats2} =
-        case {SkipSenario, Section, Tokens} of
+    {SkipScenario2, Section2, GWT2, Result, Stats2} =
+        case {SkipScenario, Section, Tokens} of
             {_, _, ['scenario:' | _]} ->
                 {false, scenario, undefined, {ok, State},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
@@ -172,11 +172,11 @@ process_line({LineNum, Line},
                 {false, scenario, undefined, {ok, State},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {_, _, []} ->
-                {SkipSenario, undefined, undefined, {ok, State}, Stats};
+                {SkipScenario, undefined, undefined, {ok, State}, Stats};
             {_, undefined, _} ->
-                {SkipSenario, undefined, undefined, {ok, State}, Stats};
+                {SkipScenario, undefined, undefined, {ok, State}, Stats};
             {_, scenario, ['#' | _]} ->
-                {SkipSenario, Section, GWT, {ok, State}, Stats};
+                {SkipScenario, Section, GWT, {ok, State}, Stats};
             {false, scenario, [TokensHead | TokensTail]} ->
                 G = case {GWT, TokensHead} of
                         {undefined, _}    -> TokensHead;
@@ -196,10 +196,10 @@ process_line({LineNum, Line},
                             {failed, {Err, Reason}}
                     end,
 
-                {SkipSenario, Section, G, R,
+                {SkipScenario, Section, G, R,
                  Stats#cucumberl_stats{steps = NSteps + 1}};
             {true, scenario, _} ->
-                {SkipSenario, Section, GWT, skipped,
+                {SkipScenario, Section, GWT, skipped,
                  Stats#cucumberl_stats{steps = NSteps + 1}}
         end,
 
@@ -209,10 +209,10 @@ process_line({LineNum, Line},
             case check_step(Result) of
                 {passed, PossibleState} ->
                     io:format("ok~n"),
-                    {SkipSenario2, Section2, GWT2, PossibleState, Stats2};
+                    {SkipScenario2, Section2, GWT2, PossibleState, Stats2};
                 skipped ->
                     io:format("skipped~n"),
-                    {SkipSenario2, Section2, GWT2, State, Stats2};
+                    {SkipScenario2, Section2, GWT2, State, Stats2};
                 missing ->
                     io:format("NO-STEP~n~n"),
                     io:format("a step definition snippet...~n"),
@@ -229,7 +229,7 @@ process_line({LineNum, Line},
         _ ->
             %% TODO: is this an error case - should it fail when this happens?
             io:format("~n"),
-            {SkipSenario, Section2, GWT2, State, Stats2}
+            {SkipScenario, Section2, GWT2, State, Stats2}
     end.
 
 apply_step(FeatureModule, G, State, Tokens, Line, LineNum) ->
