@@ -16,7 +16,9 @@ To run unit tests, do...
 
     make test
 
-There's are sample feature files (examples/features) and step definitions (in examples/src). Running `make test` will execute these too.
+There's are sample feature files (examples/complex_sample/features and
+examples/complex_sample/features) and step definitions (in
+examples/src). Running `make test` will execute these too.
 
 You can also run them by hand, for example...
 
@@ -41,49 +43,51 @@ So you want to write your own step definitions?  No problem.  Any
 erlang module that implements step definitions should export a step/2
 function, with this kind of call signature...
 
-    step(TokenList, Info)
+    Action(TokenList, State, Info)
+
+Where Action is:
+
+- given
+- 'when'
+- then
 
 The TokenList parameter is a list of either atoms or strings, such as...
 
-    [given, i, have, entered, "Joe Armstrong", into, the, authors, field]
+    [i, have, entered, "Joe Armstrong", into, the, authors, field]
 
-You can also export functions to explicitly deal with the `given`, `when` and
-`then` tokens. So for example, the previous TokenList would also be accepted in
+So for example, the previous TokenList would also be accepted in
 a function definition like this:
 
-    given([i, have, entered, Name, into, the, authors, field], _) -> ok.
+    given([i, have, entered, Name, into, the, authors, field], State, _) ->
+        {ok, NewState}.
+
+The State parameter is the state the last step function returned in the state field of the tuple. In the above example, this is NewState.
 
 The Info parameter is a tuple of helpful debug information, such as
 the {LineText, LineNum}, of what cucumberl is currently processing.
 The Info parameter is usually ignored unless you're deep into
 debugging your scenario/steps.
 
-Here's how you'd write a few step defintion functions, using erlang's
+Here's how you'd write a few step definition functions, using erlang's
 pattern matching.
 
-    step([given, i, have, entered, N, into, the, calculator], _Info) ->
+    given([i, have, entered, N, into, the, calculator], _State, _Info) ->
       % Your step implementation here.
-      todo;
-    step(['when', i, press, add], _) ->
+      todo.
+
+    'when'([, i, press, add], _, _) ->
       % Your step implementation here.
-      todo;
-    step(['then', the, result, should, be, Result, on, the, screen], _) ->
+      todo.
+
+    then([the, result, should, be, Result, on, the, screen], _, _) ->
       % Your step implementation here.
-      todo;
-    step(_, _) -> undefined.
+      todo.
 
 Notice that all the tokens have been atomized (and turned lowercase).
 
-Also, we must have a last step definition that returns undefined,
-so that cucumberl can keep matching against every module that
-you provide in your StepDefinitionModules list (see below).
-
-In general, your "real" step definitions should return anything but
-undefined, with the following caveats:
-
-- The atoms `true` and `ok` represent *success* and print *ok* on the console
+- The atoms `true` and `ok` in the state tuple represent *success* and
+  print *ok* on the console
 - A two-tuple of the form `{failed, Reason}` indicates failure
-- The atom `undefined` essentially means, "carry on" (i.e., it is ignored)
 
 The above step definitions will match a scenario like the following...
 
@@ -95,30 +99,39 @@ The above step definitions will match a scenario like the following...
 
 ## Running cucumberl
 
-Running cucumberl on the command line is very simple. Just execute the cucumberl
-self-contained escript.
+Running cucumberl on the command line is very simple. Just execute the
+cucumberl self-contained escript.
 
 To run a feature file through cucumberl using the erlang API...
 
-    cucumberl:run(PathToFeatureFile, FeatureDefinitionModule).
+    cucumberl:run(PathToFeatureFile).
 
 For example...
 
+    cucumberl:run("./features/sample.feature").
+
+or
+
     cucumberl:run("./features/sample.feature", FeatureDefinitionModule).
 
-The FeatureDefinitionModule parameter is an optional module that implements te feature and contains step/2 callbacks.  For example...
+The FeatureDefinitionModule parameter is an optional module that
+implements the feature and contains the step callbacks.  However, it is
+only needed when the name of the step implementation is different then
+the name of the feature. For example...
 
     cucumberl:run("./features/auction.feature",
-                   auction_step_definitions).
+                   auction).
 
-If it is not provided, then the a module by the same name as the
-feature is assumed to implement the feature.
+is exactly equivalent to
 
     cucumberl:run("./features/auction.feature").
 
-is equivalent to
+However, you may want to implement the feature in a different module,
+such as ...
 
-    cucumberl:run("./features/auction.feature", auction).
+    cucumberl:run("./features/auction.feature", some_other_module).
+
+perfectly acceptable but not recommended.
 
 ## Scenario Outlines
 
@@ -140,8 +153,8 @@ example...
         |  2 | 3 | 6  | multiply |
         | 10 | 1 | 11 | add      |
 
-See the files examples/sample/src/sample_table.erl and
-examples/sample/features/sample_table.feature for more details.
+See the files examples/simple_sample/src/simple_sample_table.erl and
+examples/simple_sample/features/simple_sample_table.feature for more details.
 
 ## License
 
