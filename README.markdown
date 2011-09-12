@@ -1,6 +1,6 @@
 # cucumberl
 
-A pure-erlang, open-source, single-file implementation of Cucumber
+A pure-erlang, open-source, implementation of Cucumber
 (http://cukes.info).  This provides a subset of the Cucumber feature
 definition language.
 
@@ -109,7 +109,7 @@ For example...
 The FeatureDefinitionModule parameter is an optional module that implements te feature and contains step/2 callbacks.  For example...
 
     cucumberl:run("./features/auction.feature",
-    		   auction_step_definitions).
+                   auction_step_definitions).
 
 If it is not provided, then the a module by the same name as the
 feature is assumed to implement the feature.
@@ -142,12 +142,6 @@ example...
 
 See the files examples/sample/src/sample_table.erl and
 examples/sample/features/sample_table.feature for more details.
-
-## It fits in one file!
-
-To use cucumberl in your own work, you can just copy src/cucumber.erl
-to your own erlang project, as it's fully self-contained. You can also use the
-`cucumberl` escript which is generated when you build the project.
 
 ## License
 
