@@ -171,9 +171,9 @@ check_step(false)          -> failed;
 check_step({failed, _})    -> failed;
 check_step(_)              -> invalid_result.
 
-format_missing_step('when', [_ | Tokens]) ->
+format_missing_step('when', Tokens) ->
     io:format("'when'(~p, State, _) ->~n  undefined.~n~n", [Tokens]);
-format_missing_step(GWT, [_ | Tokens]) ->
+format_missing_step(GWT, Tokens) ->
     io:format("~p(~p, State, _) ->~n  undefined.~n~n", [GWT, Tokens]).
 
 call_setup(FeatureModule) ->
