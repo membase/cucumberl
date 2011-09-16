@@ -70,7 +70,7 @@ run_tree(Tree, FeatureModule) ->
                          steps = NSteps,
                          failures = Failures}  ->
             io:format("~n~p scenarios~n~p steps~n~p failures ~n~n",
-                      [NScenarios, NSteps, Failures]),
+                      [NScenarios, NSteps, erlang:length(Failures)]),
             {failed, Result};
         _ ->
             failed
@@ -109,8 +109,11 @@ process_line({Type, LineNum, Tokens, Line},
                             %% we don't have a matching function clause
                             undefined;
                         Err:Reason ->
+                            io:format("~nSTEP: ~s FAILED: ~n ~p:~p ~p~n",
+                                      [Line, Err, Reason,
+                                       erlang:get_stacktrace()]),
                             %% something else went wrong, which means fail
-                            {failed, {Err, Reason}}
+                            {failed, {Err, Reason, erlang:get_stacktrace()}}
                     end,
 
                 {SkipScenario, R,
