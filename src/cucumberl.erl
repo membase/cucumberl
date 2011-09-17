@@ -84,7 +84,7 @@ process_line({Type, LineNum, Tokens, Line},
              FeatureModule) ->
     %% GWT stands for given-when-then.
     %% GWT is the previous line's given-when-then atom.
-    io:format("~s:~s ",
+    io:format("~s:~s ~n",
               [string:left(Line, 65),
                string:left(integer_to_list(LineNum), 4)]),
 
@@ -127,27 +127,24 @@ process_line({Type, LineNum, Tokens, Line},
         {{action, G1}, Result} ->
             case check_step(Result) of
                 {passed, PossibleState} ->
-                    io:format("ok~n"),
                     {SkipScenario2, PossibleState, Stats2};
                 skipped ->
-                    io:format("skipped~n"),
                     {SkipScenario2, State, Stats2};
                 missing ->
-                    io:format("NO-STEP~n~n"),
+                    io:format("---------NO-STEP--------~n~n"),
                     io:format("a step definition snippet...~n"),
                     format_missing_step(G1, Tokens),
                     {true, undefined, undefined, State,
                      Stats2#cucumberl_stats{failures = [{missing, G1}
                                                         | FailedSoFar] }};
                 FailedResult ->
-                    io:format("FAIL ~n"),
+                    io:format("-------FAIL------- ~n~n"),
                     {true, State,
                      Stats2#cucumberl_stats{ failures = [{FailedResult, Result}
                                                          |FailedSoFar] }}
             end;
         _ ->
             %% TODO: is this an error case - should it fail when this happens?
-            io:format("~n"),
             {SkipScenario, State, Stats2}
     end.
 
