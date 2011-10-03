@@ -54,7 +54,7 @@ run_tree(Tree, FeatureModule) ->
         catch
             Err:Reason ->
                 %% something else went wrong, which means fail
-                io:format("Feature Failed: ~p:~p ~p",
+                io:format("\e[31mFeature Failed: ~p:~p ~p",
                           [Err, Reason,
                            erlang:get_stacktrace()]),
                 failed
@@ -69,7 +69,7 @@ run_tree(Tree, FeatureModule) ->
         #cucumberl_stats{scenarios = NScenarios,
                          steps = NSteps,
                          failures = Failures}  ->
-            io:format("~n~p scenarios~n~p steps~n~p failures ~n~n",
+            io:format("~n~p scenarios~n~p steps~n\e[31m~p failures ~n~n",
                       [NScenarios, NSteps, erlang:length(Failures)]),
             {failed, Result};
         _ ->
@@ -84,7 +84,7 @@ process_line({Type, LineNum, Tokens, Line},
              FeatureModule) ->
     %% GWT stands for given-when-then.
     %% GWT is the previous line's given-when-then atom.
-    io:format("~s:~s ~n",
+    io:format("\e[32m~s:~s ~n",
               [string:left(Line, 65),
                string:left(integer_to_list(LineNum), 4)]),
 
@@ -109,7 +109,7 @@ process_line({Type, LineNum, Tokens, Line},
                             %% we don't have a matching function clause
                             undefined;
                         Err:Reason ->
-                            io:format("~nSTEP: ~s FAILED: ~n ~p:~p ~p~n",
+                            io:format("~n\e[31mSTEP: ~s FAILED: ~n ~p:~p ~p~n",
                                       [Line, Err, Reason,
                                        erlang:get_stacktrace()]),
                             %% something else went wrong, which means fail
@@ -134,14 +134,14 @@ process_line({Type, LineNum, Tokens, Line},
                 skipped ->
                     {SkipScenario2, State, Stats2};
                 missing ->
-                    io:format("---------NO-STEP--------~n~n"),
-                    io:format("a step definition snippet...~n"),
+                    io:format("\e[31m---------NO-STEP--------~n~n"),
+                    io:format("\e[31ma step definition snippet...~n"),
                     format_missing_step(G1, Tokens),
                     {true, undefined, undefined, State,
                      Stats2#cucumberl_stats{failures = [{missing, G1}
                                                         | FailedSoFar] }};
                 FailedResult ->
-                    io:format("-------FAIL------- ~n~n"),
+                    io:format("\e[31m-------FAIL------- ~n~n"),
                     {true, State,
                      Stats2#cucumberl_stats{ failures = [{FailedResult, Result}
                                                          |FailedSoFar] }}
@@ -172,9 +172,9 @@ check_step({failed, _})    -> failed;
 check_step(_)              -> invalid_result.
 
 format_missing_step('when', Tokens) ->
-    io:format("'when'(~p, State, _) ->~n  undefined.~n~n", [Tokens]);
+    io:format("\e[31m'when'(~p, State, _) ->~n  undefined.~n~n", [Tokens]);
 format_missing_step(GWT, Tokens) ->
-    io:format("~p(~p, State, _) ->~n  undefined.~n~n", [GWT, Tokens]).
+    io:format("\e[31m~p(~p, State, _) ->~n  undefined.~n~n", [GWT, Tokens]).
 
 call_setup(FeatureModule) ->
     case erlang:function_exported(FeatureModule, setup, 0) of
