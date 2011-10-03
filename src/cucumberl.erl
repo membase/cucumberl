@@ -30,7 +30,7 @@ run(FilePath)
 
 run(FilePath, FeatureModule)
   when is_list(FilePath), is_atom(FeatureModule) ->
-    {_, Tree} = cucumber_parser:parse(FilePath),
+    {_, Tree} = cucumberl_parser:parse(FilePath),
     run_tree(Tree, FeatureModule).
 
 run_tree(Tree, FeatureModule) ->
