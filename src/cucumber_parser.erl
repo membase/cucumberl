@@ -97,12 +97,12 @@ process_line({LineNum, Line}, {Acc,  {Section0, GWT0}}) ->
     {Parsed, Section1, GWT1} =
         case {Section0, Tokens} of
             {_, ['feature:' | _]} ->
-                {{feature, LineNum, Tokens}, undefined, GWT0};
+                {{feature, LineNum, Tokens, Line}, undefined, GWT0};
             {_, ['scenario:' | _]} ->
-                {{scenario, LineNum, Tokens}, senario, GWT0};
+                {{scenario, LineNum, Tokens, Line}, scenario, GWT0};
             {_, ['scenario', 'outline:' | _]} ->
-                {{senario_outline, LineNum, Tokens, Line},
-                 senario, GWT0};
+                {{scenario_outline, LineNum, Tokens, Line},
+                 scenario, GWT0};
             {_, []} ->
                 {{desc, LineNum, Tokens, Line}, undefined, GWT0};
             {undefined, _} ->
@@ -115,9 +115,9 @@ process_line({LineNum, Line}, {Acc,  {Section0, GWT0}}) ->
                         {_, 'and'}        -> GWT0;
                         {GWT0, TokensHead} -> TokensHead
                     end,
-                {{action, LineNum, G, TokensTail, Line}, Section0, G}
+                {{{action, G}, LineNum, TokensTail, Line}, Section0, G}
         end,
-    {[Parsed | Acc], Section1, GWT1}.
+    {[Parsed | Acc], {Section1, GWT1}}.
 
 
 numbered_lines(Lines) ->
