@@ -187,7 +187,7 @@ call_setup(FeatureModule) ->
     end.
 
 call_teardown(FeatureModule, State) ->
-    case erlang:function_exported(FeatureModule, teardown, 0) of
+    case erlang:function_exported(FeatureModule, teardown, 1) of
         true ->
             FeatureModule:teardown(State);
         false ->
