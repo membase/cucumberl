@@ -95,9 +95,11 @@ process_line({Type, LineNum, Tokens, Line},
             {_, feature} ->
                 {false, {ok, State}, Stats};
             {_, scenario} ->
+                call_scenario_setup(FeatureModule),
                 {false, {ok, State},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {_, scenario_outline} ->
+                call_scenario_setup(FeatureModule),
                 {false, {ok, State},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {false, {action, G}} ->
@@ -188,6 +190,14 @@ call_teardown(FeatureModule, State) ->
     case erlang:function_exported(FeatureModule, teardown, 1) of
         true ->
             FeatureModule:teardown(State);
+        false ->
+            undefined
+    end.
+
+call_scenario_setup(FeatureModule) ->
+    case erlang:function_exported(FeatureModule, scenario_setup, 0) of
+        true ->
+            FeatureModule:scenario_setup();
         false ->
             undefined
     end.
