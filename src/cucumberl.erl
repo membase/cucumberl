@@ -59,7 +59,7 @@ run_tree(Tree, FeatureModule) ->
                            erlang:get_stacktrace()]),
                 failed
         end,
-    case Result of
+    Verdict = case Result of
         #cucumberl_stats{scenarios = NScenarios,
                          steps = NSteps,
                          failures = []}  ->
@@ -74,7 +74,10 @@ run_tree(Tree, FeatureModule) ->
             {failed, Result};
         _ ->
             failed
-    end.
+    end,
+    io:format("\e[39m"),
+    Verdict.
+
 
 process_line({Type, LineNum, Tokens, Line},
              {SkipScenario, State,
