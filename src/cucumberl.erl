@@ -109,7 +109,9 @@ process_line({Type, LineNum, Tokens, Line},
                     catch
                         error:function_clause ->
                             %% we don't have a matching function clause
-                            undefined;
+                            io:format("~nSTEP ~s is *not* implemented: ~p ~n",
+                                      [Line, Tokens]),
+                            {failed, {unimplemented, Tokens}};
                         Err:Reason ->
                             io:format("~n\e[31mSTEP: ~s FAILED: ~n ~p:~p ~p~n",
                                       [Line, Err, Reason,
