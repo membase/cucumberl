@@ -98,12 +98,10 @@ process_line({Type, LineNum, Tokens, Line},
             {_, feature} ->
                 {false, {ok, State}, Stats};
             {_, scenario} ->
-                call_scenario_setup(FeatureModule),
-                {false, {ok, State},
+                {false, {ok, call_scenario_setup(FeatureModule)},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {_, scenario_outline} ->
-                call_scenario_setup(FeatureModule),
-                {false, {ok, State},
+                {false, {ok, call_scenario_setup(FeatureModule)},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {false, {action, G}} ->
                 R = try
