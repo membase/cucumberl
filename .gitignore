@@ -3,3 +3,5 @@ erl_crash.dump
 **.cov.html
 *~
 cucumberl
+.eunit
+*.swp
