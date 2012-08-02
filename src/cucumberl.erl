@@ -30,7 +30,7 @@ run(FilePath)
 
 run(FilePath, FeatureModule)
   when is_list(FilePath), is_atom(FeatureModule) ->
-    {_, Tree} = cucumber_parser:parse(FilePath),
+    {_, Tree} = cucumberl_parser:parse(FilePath),
     run_tree(Tree, FeatureModule).
 
 run_tree(Tree, FeatureModule) ->
@@ -76,6 +76,7 @@ run_tree(Tree, FeatureModule) ->
             failed
     end.
 
+
 process_line({Type, LineNum, Tokens, Line},
              {SkipScenario, State,
               #cucumberl_stats{scenarios = NScenarios,
@@ -95,10 +96,10 @@ process_line({Type, LineNum, Tokens, Line},
             {_, feature} ->
                 {false, {ok, State}, Stats};
             {_, scenario} ->
-                {false, {ok, State},
+                {false, {ok, call_scenario_setup(FeatureModule)},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {_, scenario_outline} ->
-                {false, {ok, State},
+                {false, {ok, call_scenario_setup(FeatureModule)},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {false, {action, G}} ->
                 R = try
@@ -187,9 +188,17 @@ call_setup(FeatureModule) ->
     end.
 
 call_teardown(FeatureModule, State) ->
-    case erlang:function_exported(FeatureModule, teardown, 0) of
+    case erlang:function_exported(FeatureModule, teardown, 1) of
         true ->
             FeatureModule:teardown(State);
+        false ->
+            undefined
+    end.
+
+call_scenario_setup(FeatureModule) ->
+    case erlang:function_exported(FeatureModule, scenario_setup, 0) of
+        true ->
+            FeatureModule:scenario_setup();
         false ->
             undefined
     end.
