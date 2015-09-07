@@ -10,11 +10,11 @@ You'll need erlang, of course.
 
 To do a build, do...
 
-    make
+    ./rebar3 compile
 
 To run unit tests, do...
 
-    make test
+    ./rebar3 eunit
 
 There's are sample feature files (examples/complex_sample/features and
 examples/complex_sample/features) and step definitions (in
@@ -166,5 +166,3 @@ Improvements and patches welcomed -- info@northscale.com
 
 Cheers,
 Steve Yen
-
-
