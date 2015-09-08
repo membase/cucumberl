@@ -1,11 +1,11 @@
 {application, cucumberl,
  [
   {description, "A pure-erlang implementation of Cucumber."},
-  {vsn, "0.0.5"},
-  {applications, [
-                  kernel,
-                  stdlib
-                 ]},
+  {vsn, "0.0.6"},
+  {applications, [kernel,
+                  stdlib]},
   {registered, []},
+  {licenses, ["MIT"]},
+  {links, [{"Github", "https://github.com/ericbmerritt/cucumberl"}]},
   {env, []}
  ]}.
