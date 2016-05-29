@@ -76,7 +76,7 @@ run_tree(Tree, FeatureModule) ->
             failed
     end.
 
-process_line({Type, LineNum, Tokens, Line},
+process_line({Type, LineNum, Matchables, Line},
              {SkipScenario, State,
               #cucumberl_stats{scenarios = NScenarios,
                                steps = NSteps,
@@ -102,14 +102,9 @@ process_line({Type, LineNum, Tokens, Line},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {false, {action, G}} ->
                 R = try
-                        apply_step(FeatureModule, G, State, Tokens,
+                        attempt_step(FeatureModule, G, State, Matchables,
                                    Line, LineNum)
                     catch
-                        error:function_clause ->
-                            %% we don't have a matching function clause
-                            io:format("~nSTEP ~s is *not* implemented: ~p ~n",
-                                      [Line, Tokens]),
-                            {failed, {unimplemented, Tokens}};
                         Err:Reason ->
                             io:format("~nSTEP: ~s FAILED: ~n ~p:~p ~p~n",
                                       [Line, Err, Reason,
@@ -138,8 +133,8 @@ process_line({Type, LineNum, Tokens, Line},
                 missing ->
                     io:format("---------NO-STEP--------~n~n"),
                     io:format("a step definition snippet...~n"),
-                    format_missing_step(G1, Tokens),
-                    {true, undefined, undefined, State,
+                    format_missing_step(G1, Matchables),
+                    {{true, undefined, undefined}, State,
                      Stats2#cucumberl_stats{failures = [{missing, G1}
                                                         | FailedSoFar] }};
                 FailedResult ->
@@ -151,6 +146,19 @@ process_line({Type, LineNum, Tokens, Line},
         _ ->
             %% TODO: is this an error case - should it fail when this happens?
             {SkipScenario, State, Stats2}
+    end.
+
+attempt_step(_FeatureModule, _G, _State, [], Line, _LineNum) ->
+    io:format("~nSTEP ~s is *not* implemented ~n",
+              [Line]),
+    step_undefined;
+attempt_step(FeatureModule, G, State, [ArgAttempt | Rest], Line, LineNum) ->
+    try
+        apply_step(FeatureModule, G, State, ArgAttempt,
+                   Line, LineNum)
+    catch
+        error:function_clause ->
+            attempt_step(FeatureModule, G, State, Rest, Line, LineNum)
     end.
 
 apply_step(FeatureModule, G, State, Tokens, Line, LineNum) ->
@@ -173,10 +181,18 @@ check_step(false)          -> failed;
 check_step({failed, _})    -> failed;
 check_step(_)              -> invalid_result.
 
-format_missing_step('when', Tokens) ->
-    io:format("'when'(~p, State, _) ->~n  undefined.~n~n", [Tokens]);
-format_missing_step(GWT, Tokens) ->
-    io:format("~p(~p, State, _) ->~n  undefined.~n~n", [GWT, Tokens]).
+format_missing_step('when', [Tokens, Binary, String]) ->
+    io:format("'when'(~p, State, _) ->~n  undefined.~n", [Tokens]),
+    io:format("OR~n"),
+    io:format("'when'(~p, State, _) ->~n  undefined.~n", [Binary]),
+    io:format("OR~n"),
+    io:format("'when'(~p, State, _) ->~n  undefined.~n", [String]);
+format_missing_step(GWT, [Tokens, Binary, String]) ->
+    io:format("~p(~p, State, _) ->~n  undefined.~n", [GWT, Tokens]),
+    io:format("OR~n"),
+    io:format("~p(~p, State, _) ->~n  undefined.~n", [GWT, Binary]),
+    io:format("OR~n"),
+    io:format("~p(~p, State, _) ->~n  undefined.~n", [GWT, String]).
 
 call_setup(FeatureModule) ->
     case erlang:function_exported(FeatureModule, setup, 0) of

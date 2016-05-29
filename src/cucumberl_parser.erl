@@ -92,6 +92,11 @@ process_line({LineNum, Line}, {Acc,  {Section0, GWT0}}) ->
     %%
     Tokens = flat_zip_odd_even(TokenAtoms, QuotedStrs),
 
+    %% We also offer the ability to match binaries and lists
+    %% So herewe strip the given/when/then/and from the line for matching.
+    %% We do not convert to lower case
+    {BinaryLine, ListLine} = gather_token_alternatives(Line),
+
     %% Run through the FeatureModule steps, only if we are in a scenario
     %% section, otherwise, skip the line.
     {Parsed, Section1, GWT1} =
@@ -115,10 +120,26 @@ process_line({LineNum, Line}, {Acc,  {Section0, GWT0}}) ->
                         {_, 'and'}        -> GWT0;
                         {GWT0, TokensHead} -> TokensHead
                     end,
-                {{{action, G}, LineNum, TokensTail, Line}, Section0, G}
+                {{{action, G}, LineNum,
+                  [TokensTail, BinaryLine, ListLine], Line},
+                 Section0, G}
         end,
     {[Parsed | Acc], {Section1, GWT1}}.
 
+gather_token_alternatives(Line) ->
+    StrippedLine = strip_directive(string:strip(Line)),
+    {erlang:iolist_to_binary(StrippedLine), StrippedLine}.
+
+strip_directive("Given " ++ Line) ->
+    Line;
+strip_directive("And " ++ Line) ->
+    Line;
+strip_directive("When " ++ Line) ->
+    Line;
+strip_directive("Then " ++ Line) ->
+    Line;
+strip_directive(Line) ->
+    Line.
 
 numbered_lines(Lines) ->
     NLines = length(Lines),
