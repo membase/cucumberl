@@ -42,14 +42,15 @@ run_tree(Tree, FeatureModule) ->
     end,
     Result =
         try
-            State = call_setup(FeatureModule),
-            {_, _, Stats} =
+            State0 = call_setup(FeatureModule),
+            {_, State1, Stats} =
                 lists:foldl(fun(Entry, Acc) ->
                                     process_line(Entry, Acc, FeatureModule)
                             end,
-                            {false, State, #cucumberl_stats{}},
+                            {false, State0, #cucumberl_stats{}},
                   Tree),
-            call_teardown(FeatureModule, State),
+            State2 = call_scenario_teardown(FeatureModule, State1),
+            call_teardown(FeatureModule, State2),
             Stats
         catch
             Err:Reason ->
@@ -95,10 +96,12 @@ process_line({Type, LineNum, Matchables, Line},
             {_, feature} ->
                 {false, {ok, State}, Stats};
             {_, scenario} ->
-                {false, {ok, State},
+                State1 = scenario_transition(FeatureModule, State, NScenarios),
+                {false, {ok, State1},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {_, scenario_outline} ->
-                {false, {ok, State},
+                State1 = scenario_transition(FeatureModule, State, NScenarios),
+                {false, {ok, State1},
                  Stats#cucumberl_stats{scenarios = NScenarios + 1}};
             {false, {action, G}} ->
                 R = try
@@ -194,6 +197,29 @@ format_missing_step(GWT, [Tokens, Binary, String]) ->
     io:format("OR~n"),
     io:format("~p(~p, State, _) ->~n  undefined.~n", [GWT, String]).
 
+scenario_transition(FeatureModule, State, 0) ->
+    call_scenario_setup(FeatureModule, State);
+scenario_transition(FeatureModule, State0, _) ->
+    State1 = call_scenario_teardown(FeatureModule, State0),
+    call_scenario_setup(FeatureModule, State1).
+
+call_scenario_setup(FeatureModule, State) ->
+    case erlang:function_exported(FeatureModule, scenario_setup, 1) of
+        true ->
+            FeatureModule:scenario_setup(State);
+        false ->
+            State
+    end.
+
+call_scenario_teardown(FeatureModule, State) ->
+    case erlang:function_exported(FeatureModule, scenario_teardown, 1) of
+        true ->
+            FeatureModule:scenario_teardown(State);
+        false ->
+            State
+    end.
+
+
 call_setup(FeatureModule) ->
     case erlang:function_exported(FeatureModule, setup, 0) of
         true ->
@@ -203,7 +229,7 @@ call_setup(FeatureModule) ->
     end.
 
 call_teardown(FeatureModule, State) ->
-    case erlang:function_exported(FeatureModule, teardown, 0) of
+    case erlang:function_exported(FeatureModule, teardown, 1) of
         true ->
             FeatureModule:teardown(State);
         false ->

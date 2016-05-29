@@ -1,12 +1,22 @@
 -module(binary_sample).
 
--export([setup/0, teardown/1,
+-export([setup/0, teardown/1, scenario_setup/1, scenario_teardown/1,
          given/3, 'when'/3, then/3, main/0]).
 
 -export([enter/2, press/2]).
 
 setup() ->
+    io:format("Foooo"),
     [].
+
+scenario_setup([]) ->
+    io:format("Here"),
+    [1].
+
+scenario_teardown(passed) ->
+    io:format("Foo"),
+    [2].
+
 
 %% Step definitions for the sample calculator Addition feature.
 given(<<"I have entered 50 into the calculator">>, State, _) ->
@@ -18,7 +28,7 @@ given(<<"I have entered 70 into the calculator">>, State, _) ->
     {ok, press(State, add)}.
 
 then(<<"the result should be 120 on the screen">>, State, _) ->
-    120 =:= State.
+    {120 =:= State, passed}.
 
 teardown(_State) ->
     ok.
