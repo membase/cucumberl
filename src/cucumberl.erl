@@ -30,7 +30,7 @@ run(FilePath)
 
 run(FilePath, FeatureModule)
   when is_list(FilePath), is_atom(FeatureModule) ->
-    {_, Tree} = cucumber_parser:parse(FilePath),
+    {_, Tree} = cucumberl_parser:parse(FilePath),
     run_tree(Tree, FeatureModule).
 
 run_tree(Tree, FeatureModule) ->
@@ -137,7 +137,7 @@ process_line({Type, LineNum, Matchables, Line},
                     io:format("---------NO-STEP--------~n~n"),
                     io:format("a step definition snippet...~n"),
                     format_missing_step(G1, Matchables),
-                    {{true, undefined, undefined}, State,
+                    {true, State,
                      Stats2#cucumberl_stats{failures = [{missing, G1}
                                                         | FailedSoFar] }};
                 FailedResult ->

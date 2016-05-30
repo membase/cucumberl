@@ -17,7 +17,6 @@ process_lines(Lines) ->
                     expanded_lines(NumberedLines)),
     lists:reverse(Tree).
 
-
 expanded_lines(NumberedLines) ->
     %% Expand "Scenario Outlines" or tables.
     {_, _, ExpandedLines} =
