@@ -6,15 +6,12 @@
 -export([enter/2, press/2]).
 
 setup() ->
-    io:format("Foooo"),
     [].
 
-scenario_setup([]) ->
-    io:format("Here"),
+scenario_setup(_) ->
     [1].
 
-scenario_teardown(passed) ->
-    io:format("Foo"),
+scenario_teardown(_) ->
     [2].
 
 
